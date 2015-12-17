@@ -1,0 +1,6 @@
+.DS_Store
+favicon.ico
+bower_components
+node_modules
+public
+app/env.js

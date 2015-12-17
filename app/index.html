@@ -1,0 +1,49 @@
+<html>
+
+<head>
+  <title>Autumn Dental Arts - FedEx Shipper</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <script src="env.js"></script>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="elements/elements.html">
+  <style is="custom-style" include="shared-styles"></style>
+</head>
+
+<body>
+  <style type="text/css">
+  body {
+    background: #fafafa;
+    font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #333;
+  }
+  </style>
+  <template id="app" is="dom-bind">
+    <firebase-auth id="firebase-auth" provider="anonymous" auto-login="true"></firebase-auth>
+    <paper-toolbar>
+      <h1 class="top title">Autumn Dental Arts</h1>
+    </paper-toolbar>
+    <verify-address location="{{ env.firebase.location }}" jwt="{{ jwt }}"></verify-address>
+    <create-parcel></create-parcel>
+  </template>
+  <paper-toast></paper-toast>
+  <script type="text/javascript">
+  window.addEventListener('WebComponentsReady', function() {
+    var app = document.querySelector('#app');
+    var firebaseAuth = document.querySelector('#firebase-auth');
+
+    app.env = window.env;
+
+    firebaseAuth.location = window.env.firebase.location;
+
+    firebaseAuth.addEventListener('login', function(e) {
+      app.jwt = e.detail.user;
+    });
+
+    firebaseAuth.addEventListener('logout', function() {
+      firebaseAuth.login();
+    });
+  });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,11 @@
+matchUID() = $uid == auth.uid;
+
+path /$env/queues/$queue/tasks {
+  index() = ["_state"];
+  
+}
+
+path /$env/queues/$queue/tasks/$uid {
+  read() = matchUID();
+  write() = matchUID();
+}

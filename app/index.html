@@ -26,8 +26,11 @@
     <verify-parcel jwt="[[jwt]]" verified="{{ parcels }}"></verify-parcel>
     <template is="dom-if" if="{{ parcels.length }}">
       <template is="dom-if" if="{{ fromAddress }}">
-        <get-quote jwt="[[jwt]]" destination="[[env.destination]]" parcels="[[parcels]]" from-address="[[fromAddress]]"></get-quote>
+        <get-quote jwt="[[jwt]]" destination="[[env.destination]]" parcels="[[parcels]]" from-address="[[fromAddress]]" selection="{{ selection }}"></get-quote>
       </template>
+    </template>
+    <template is="dom-if" if="{{ selection }}">
+      <purchase-label jwt="[[jwt]]" selection="[[selection]]"></purchase-label>
     </template>
   </template>
   <paper-toast></paper-toast>

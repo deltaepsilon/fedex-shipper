@@ -1,0 +1,185 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/firebase-element/firebase-document.html">
+<link rel="import" href="../../../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../../bower_components/paper-input/all-imports.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../../../bower_components/paper-progress/paper-progress.html">
+<link rel="import" href="../../styles/styles.html">
+<dom-module id="purchase-label">
+  <template>
+    <style is="custom-style" include="shared-styles"></style>
+    <style>
+    :host {
+      display: block;
+    }
+    </style>
+    <firebase-document id="queue" location="{{ _queueLocation }}" data="{{ queue }}"></firebase-document>
+    <iron-localstorage id="quotes" name="quotes" value="{{ quotes }}"></iron-localstorage>
+    <iron-localstorage id="labels" name="labels" value="{{ labels }}" on-iron-localstorage-load-empty="_handleEmptyLabels"></iron-localstorage>
+    <paper-material elevation="1">
+      <h3>Purchase Label</h3>
+      <div class="table-list">
+        <div class="table-list-item layout horizontal wrap" style="margin-bottom: 2rem;">
+          <div class="layout horizontal flex wrap" style="min-width: 17rem;">
+            <div class="layout vertical end-justified">
+              <paper-item>
+                <paper-item-body two-line>
+                  <div>
+                    <div>{{ selection.shipment.return_address.name }}</div>
+                    <div>{{ selection.shipment.return_address.company }}</div>
+                    <div>{{ selection.shipment.return_address.street1 }}</div>
+                    <div>{{ selection.shipment.return_address.street2 }}</div>
+                    <div>{{ selection.shipment.return_address.street3 }}</div>
+                    <div>{{ selection.shipment.return_address.city }}</div>
+                    <div>{{ selection.shipment.return_address.state }}</div>
+                    <div>{{ selection.shipment.return_address.zip }}</div>
+                    <div>{{ selection.shipment.return_address.phone }}</div>
+                    <div>{{ selection.shipment.return_address.email }}</div>
+                  </div>
+                  <div secondary>Return Address</div>
+                </paper-item-body>
+              </paper-item>
+            </div>
+            <div class="layout vertical end-justified">
+              <paper-item>
+                <paper-item-body two-line>
+                  <div>
+                    <div>{{ selection.shipment.to_address.name }}</div>
+                    <div>{{ selection.shipment.to_address.company }}</div>
+                    <div>{{ selection.shipment.to_address.street1 }}</div>
+                    <div>{{ selection.shipment.to_address.street2 }}</div>
+                    <div>{{ selection.shipment.to_address.street3 }}</div>
+                    <div>{{ selection.shipment.to_address.city }}</div>
+                    <div>{{ selection.shipment.to_address.state }}</div>
+                    <div>{{ selection.shipment.to_address.zip }}</div>
+                    <div>{{ selection.shipment.to_address.phone }}</div>
+                    <div>{{ selection.shipment.to_address.email }}</div>
+                  </div>
+                  <div secondary>Destination Address</div>
+                </paper-item-body>
+              </paper-item>
+            </div>
+            <div class="layout vertical end-justified">
+              <paper-item>
+                <paper-item-body two-line>
+                  <div>
+                    <div>Weight: {{ selection.shipment.parcel.weight }} (oz)</div>
+                    <div>{{ selection.shipment.parcel.predefined_package }}</div>
+                    <template is="dom-if" if="{{ !selection.shipment.parcel.predefined_package }}">
+                      <div>Height: {{ selection.shipment.parcel.height }} (in) </div>
+                      <div>Width: {{ selection.shipment.parcel.width }} (in)</div>
+                      <div>Lenght: {{ selection.shipment.parcel.length }} (in)</div>
+                    </template>
+                  </div>
+                  <div secondary>Parcel</div>
+                </paper-item-body>
+              </paper-item>
+            </div>
+            <div class="layout vertical end-justified">
+              <paper-item>
+                <paper-item-body two-line>
+                  <div>
+                    <div>{{ selection.rate.carrier }}</div>
+                    <div>{{ selection.rate.service }}</div>
+                    <div>
+                      <strong>{{ selection.rate.rate }}</strong>
+
+                      <strong>{{ selection.rate.currency }}</strong>
+                    </div>
+                  </div>
+                  <div secondary>Rate</div>
+                </paper-item-body>
+              </paper-item>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="layout horizontal center-justified" style="position: relative; z-index: 1;">
+        <paper-button raised class="accent" on-click="purchase">Purchase</paper-button>
+      </div>
+      <div class="fit layout vertical end-justified">
+        <paper-progress id="progress" value="{{ queue.progress }}" style="width: 100%;"></paper-progress>
+      </div>
+    </paper-material>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'purchase-label',
+
+      properties: {
+        jwt: Object,
+        selection: Object,
+        quotes: Array,
+        _location: String
+      },
+
+      observers: ['_setLocation(jwt.uid)'],
+
+      _setLocation: function(uid) {
+        if (uid) {
+          this._queueLocation = window.env.firebase.location + '/queues/purchaseLabel/tasks/' + uid;
+
+          this.$.queue.query.ref().child('label').on('value', function(snap) {
+            if (snap.val()) {
+              this.$.spinner.active = false;
+              this._addLabel(snap.val());
+            }
+          }.bind(this));
+
+          this.$.queue.addEventListener('data-changed', function() {
+            if (this.$.queue.data && this.$.queue.data._error_details && this.$.queue.data._error_details.error) {
+              var toast = document.querySelector('paper-toast');
+              toast.text = this.$.queue.data._error_details.error;
+              toast.show();
+              this.$.waitingSpinner.active = false;
+            }
+          }.bind(this));
+
+        }
+      },
+
+      _handleEmptyLabels: function() {
+        this.$.labels.value = [];
+        this.$.labels.save();
+      },
+
+      _addLabel: function (label) {
+        this.push('labels', label);
+      },
+
+      attached: function () {
+        this.$.progress.scrollIntoView();
+        setTimeout(function () {
+          window.scroll(0, window.scrollY + 100);  
+        });
+        
+      },
+
+      purchase: function() {
+        this.$.queue.query.ref().child('_state').remove();
+        this.$.queue.query.ref().child('_error_details').remove();
+        this.$.queue.data = {
+          id: this.jwt.uid,
+          created: (new Date()).toString(),
+          shipmentId: this.selection.shipment.id,
+          rateId: this.selection.rate.id
+        };
+      }
+    });
+  })();
+  </script>
+</dom-module>

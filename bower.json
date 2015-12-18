@@ -40,6 +40,9 @@
     "paper-spinner": "PolymerElements/paper-spinner#~1.1.0",
     "paper-dropdown-menu": "PolymerElements/paper-dropdown-menu#~1.1.1",
     "paper-menu": "PolymerElements/paper-menu#~1.2.1",
-    "gold-zip-input": "PolymerElements/gold-zip-input#~1.0.4"
+    "gold-zip-input": "PolymerElements/gold-zip-input#~1.0.4",
+    "paper-radio-button": "PolymerElements/paper-radio-button#~1.0.12",
+    "paper-radio-group": "PolymerElements/paper-radio-group#~1.0.8",
+    "paper-progress": "PolymerElements/paper-progress#~1.0.7"
   }
 }

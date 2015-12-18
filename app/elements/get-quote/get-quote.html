@@ -21,6 +21,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../../bower_components/paper-radio-button/paper-radio-button.html">
 <dom-module id="get-quote">
   <template>
     <style is="custom-style" include="shared-styles"></style>
@@ -32,7 +34,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     .table-list-item:nth-child(odd) {
       padding-bottom: 2rem;
     }
-
+    
     .table-list-item paper-item-body {
       margin: 1rem 0;
     }
@@ -100,20 +102,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                   </paper-item-body>
                 </paper-item>
               </div>
-              <template is="dom-if" if="{{ item.messages }}">
-                <div class="layout vertical end-justified">
-                <paper-item>
-                  <paper-item-body>
-                    <template is="dom-repeat" items="{{ item.messages }}">
-                      <div class="layout horizontal" style="margin: 1rem 0;">
-                        <iron-icon icon="error" style="margin-right: 1rem;"></iron-icon>
-                        <span class="flex" style="white-space: normal;">{{ item.message }}</span>
+              <div class="layout vertical end-justified flex" style="min-width: 11rem;">
+                <paper-radio-group class="layout vertical" selected="{{ _rateId }}">
+                  <template is="dom-repeat" items="{{ item.rates }}">
+                    <paper-radio-button name$="[[item.id]]">
+                      <div>
+                        <strong>{{ item.rate }} {{ item.currency }}</strong>
                       </div>
-                    </template>
-                  </paper-item-body>
-                </paper-item>
+                      <span>{{ item.carrier }} {{ item.service }}</span>
+                    </paper-radio-button>
+                  </template>
+                </paper-radio-group>
+                <template is="dom-repeat" items="{{ item.messages }}">
+                  <div class="layout horizontal" style="margin: 1rem 0;">
+                    <iron-icon icon="error" style="margin: -2px 7px 0 7px;"></iron-icon>
+                    <span class="flex" style="white-space: normal;">{{ item.carrier }}: {{ item.message }}</span>
+                  </div>
+                </template>
               </div>
-              </template>
             </div>
             <div class="layout horizontal center-justified">
               <div class="layout vertical center-justified">
@@ -177,10 +183,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         _queueLocation: String,
         _selectedIndex: Number,
+        _rateId: String,
         _formValid: {
           type: Boolean,
           value: false,
           computed: '_verify(_selectedIndex)'
+        },
+        selection: {
+          type: Object,
+          notify: true,
+          computed: '_getSelection(_rateId, quotes)'
         }
       },
 
@@ -226,6 +238,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _removeQuote: function(e) {
         this.splice('quotes', e.target.parentElement.index, 1);
+      },
+
+      _getSelection: function(rateId) {
+        var selectedShipment;
+        var selectedRate;
+
+        this.quotes.forEach(function(shipment) {
+          if (shipment.rates) {
+            shipment.rates.forEach(function(rate) {
+              if (rateId === rate.id) {
+                selectedShipment = shipment;
+                selectedRate = rate;
+              }
+            });
+          }
+        });
+
+        return selectedShipment && selectedRate ? {shipment: selectedShipment, rate: selectedRate} : false;
       },
 
       openDialog: function() {

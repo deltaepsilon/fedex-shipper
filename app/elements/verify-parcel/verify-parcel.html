@@ -1,0 +1,257 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/firebase-element/firebase-document.html">
+<link rel="import" href="../../../bower_components/firebase-element/firebase-collection.html">
+<link rel="import" href="../../../bower_components/iron-localstorage/iron-localstorage.html">
+<link rel="import" href="../../../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../../../bower_components/paper-input/all-imports.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../../bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="../../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../styles/styles.html">
+<dom-module id="verify-parcel">
+  <template>
+    <style is="custom-style" include="shared-styles"></style>
+    <style>
+    :host {
+      display: block;
+    }
+    </style>
+    <firebase-document id="queue" location="{{ _queueLocation }}"></firebase-document>
+    <iron-localstorage id="toVerify" name="parcel-to-verify" value="{{ toVerify }}"></iron-localstorage>
+    <iron-localstorage id="verified" name="parcels-verified" value="{{ verified }}"></iron-localstorage>
+    <paper-material elevation="1">
+      <h3>Verified Parcels</h3>
+      <div class="table-list">
+        <template is="dom-repeat" items="{{ verified }}">
+          <div class="table-list-item">
+            <div class="layout horizontal wrap">
+              <div class="layout horizontal flex wrap" style="min-width: 17rem;">
+                <paper-item>
+                  <paper-item-body two-line>
+                    <div>{{ item.weight }}</div>
+                    <div secondary>Weight (oz)</div>
+                  </paper-item-body>
+                </paper-item>
+                <template is="dom-if" if="{{ item.predefined_package }}">
+                  <paper-item>
+                    <paper-item-body two-line>
+                      <div>{{ item.predefined_package }}</div>
+                      <div secondary>Package Type</div>
+                    </paper-item-body>
+                  </paper-item>
+                </template>
+                <template is="dom-if" if="{{ !item.predefined_package }}">
+                  <paper-item>
+                    <paper-item-body two-line>
+                      <div>{{ item.height }}</div>
+                      <div secondary>Height (in)</div>
+                    </paper-item-body>
+                  </paper-item>
+                  <paper-item>
+                    <paper-item-body two-line>
+                      <div>{{ item.width }}</div>
+                      <div secondary>Width (in)</div>
+                    </paper-item-body>
+                  </paper-item>
+                  <paper-item>
+                    <paper-item-body two-line>
+                      <div>{{ item.length }}</div>
+                      <div secondary>Length (in)</div>
+                    </paper-item-body>
+                  </paper-item>
+                </template>
+              </div>
+              <div class="layout vertical center-justified">
+                <paper-icon-button icon="delete" on-click="deleteParcel" index="[[index]]"></paper-icon-button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+      <div class="layout horizontal center-justified">
+        <paper-fab icon="add" on-click="openVerifyDialog" modal></paper-fab>
+      </div>
+    </paper-material>
+    <paper-dialog id="verifyDialog" modal>
+      <h2>Verify Parcel</h2>
+      <form id="parcelForm" is="iron-form" style="min-width: 30vw;">
+        <paper-input type="number" label="Weight (oz)" value="{{ parcel.weight::input }}" required></paper-input>
+        <paper-dropdown-menu label="Package Type" value="{{ _packageType }}" required>
+          <paper-menu class="dropdown-content" selected="{{ _selectedIndex }}">
+            <template is="dom-repeat" items="{{ packageTypes }}">
+              <paper-item value="{{ item.value }}">{{ item.name }}</paper-item>
+            </template>
+          </paper-menu>
+        </paper-dropdown-menu>
+        <template is="dom-if" if="{{ !parcel.predefined_package }}">
+          <paper-input type="number" label="Length (in)" value="{{ parcel.length::input }}" required></paper-input>
+          <paper-input type="number" label="Width (in)" value="{{ parcel.width::input }}" required></paper-input>
+          <paper-input type="number" label="Height (in)" value="{{ parcel.height::input }}" required></paper-input>
+        </template>
+        <footer class="layout horizontal end-justified">
+          <div class="layout vertical center-justified">
+            <paper-spinner id="verifySpinner"></paper-spinner>
+          </div>
+          <paper-button class="primary" on-click="closeVerifyDialog">Cancel</paper-button>
+          <paper-button class="primary" disabled$="{{ !_formValid }}" on-click="verify">Verify</paper-button>
+        </footer>
+      </form>
+    </paper-dialog>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'verify-parcel',
+
+      properties: {
+        jwt: Object,
+        parcel: {
+          type: Object,
+          value: {}
+        },
+        toVerify: Object,
+        verified: {
+          type: Array,
+          value: [],
+          notify: true
+        },
+        packageTypes: {
+          type: Array,
+          value: function() {
+            return [{
+              key: false,
+              name: 'Custom'
+            }].concat(window.env.fedex.predefined);
+          }
+        },
+        _selectedIndex: Number,
+        _packageType: String,
+        _queueLocation: String,
+        _verifiedLocation: String,
+        _formValid: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      observers: ['_setLocation(jwt.uid)', '_handleParcelChange(parcel.*)', '_handlePackageTypeChange(_packageType)'],
+
+      _setLocation: function(uid) {
+        if (uid) {
+          this._queueLocation = window.env.firebase.location + '/queues/verifyParcel/tasks/' + uid;
+
+          this.$.queue.query.ref().child('verified').on('value', function(snap) {
+            if (snap.val()) {
+              this.$.verifySpinner.active = false;
+              this._addVerified(snap.val());
+              this.closeVerifyDialog();
+            }
+          }.bind(this));
+
+          this.$.queue.addEventListener('data-changed', function() {
+            if (this.$.verifyDialog.opened && this.$.queue.data && this.$.queue.data._error_details && this.$.queue.data._error_details.error) {
+              var toast = document.querySelector('paper-toast');
+              toast.text = this.$.queue.data._error_details.error;
+              toast.show();
+              this.$.verifySpinner.active = false;
+            }
+          }.bind(this));
+
+        }
+      },
+
+      _handleParcelChange: function() {
+        if (typeof this.parcel === 'object' && Object.keys(this.parcel).length) {
+          this.set('toVerify', this.parcel);
+          this.$.toVerify.save();
+        }
+
+        this._formValid = this.$.parcelForm.validate() || (this.parcel.predefined_package && this.parcel.weight);
+      },
+
+      _handlePackageTypeChange: function(packageType) {
+        this.packageTypes.forEach(function(type) {
+          if (type.name === packageType) {
+            this.set('parcel.predefined_package', type.key);
+          }
+        }.bind(this));
+      },
+
+      _addVerified: function(verified) {
+        if (!this.verified) {
+          this.verified = [];
+        }
+        this.push('verified', verified);
+      },
+
+      openVerifyDialog: function() {
+        this.parcel = this.toVerify;
+        if (this.parcel && this.parcel.predefined_package) {
+          console.log('predefined_package', this.parcel.predefined_package);
+          this.packageTypes.forEach(function(type, index) {
+            if (type.key === this.parcel.predefined_package) {
+              this._selectedIndex = index;
+            }
+          }.bind(this));
+        }
+        this.$.verifySpinner.active = false;
+        this.$.verifyDialog.open();
+      },
+
+      closeVerifyDialog: function() {
+        this.$.verifyDialog.close();
+        if (this.$.queue.query) {
+          this.$.queue.query.ref().remove();
+        }
+      },
+
+      verify: function() {
+        var toNumber = [
+          'weight',
+          'height',
+          'length',
+          'width'
+        ];
+
+        toNumber.forEach(function(attribute) {
+          if (typeof this.parcel[attribute] === 'string') {
+            this.parcel[attribute] = parseFloat(this.parcel[attribute]);
+          }
+        }.bind(this));
+
+        this.$.verifySpinner.active = true;
+        this.$.queue.query.ref().child('_state').remove();
+        this.$.queue.query.ref().child('_error_details').remove();
+        this.$.queue.data = {
+          id: this.jwt.uid,
+          created: (new Date()).toString(),
+          parcel: this.parcel
+        };
+
+      },
+
+      deleteParcel: function(e) {
+        this.splice('verified', e.target.parentElement.index, 1);
+      }
+
+    });
+  })();
+  </script>
+</dom-module>

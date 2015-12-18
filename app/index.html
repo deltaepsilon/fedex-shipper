@@ -22,8 +22,13 @@
     <paper-toolbar>
       <h1 class="top title">Autumn Dental Arts</h1>
     </paper-toolbar>
-    <verify-address location="{{ env.firebase.location }}" jwt="{{ jwt }}"></verify-address>
-    <create-parcel></create-parcel>
+    <verify-address jwt="[[jwt]]" verified="{{ fromAddress }}"></verify-address>
+    <verify-parcel jwt="[[jwt]]" verified="{{ parcels }}"></verify-parcel>
+    <template is="dom-if" if="{{ parcels.length }}">
+      <template is="dom-if" if="{{ fromAddress }}">
+        <get-quote jwt="[[jwt]]" destination="[[env.destination]]" parcels="[[parcels]]" from-address="[[fromAddress]]"></get-quote>
+      </template>
+    </template>
   </template>
   <paper-toast></paper-toast>
   <script type="text/javascript">

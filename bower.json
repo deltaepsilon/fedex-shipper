@@ -37,6 +37,9 @@
     "paper-item": "PolymerElements/paper-item#~1.1.2",
     "paper-dialog": "PolymerElements/paper-dialog#~1.0.3",
     "paper-fab": "PolymerElements/paper-fab#~1.1.1",
-    "paper-spinner": "PolymerElements/paper-spinner#~1.1.0"
+    "paper-spinner": "PolymerElements/paper-spinner#~1.1.0",
+    "paper-dropdown-menu": "PolymerElements/paper-dropdown-menu#~1.1.1",
+    "paper-menu": "PolymerElements/paper-menu#~1.2.1",
+    "gold-zip-input": "PolymerElements/gold-zip-input#~1.0.4"
   }
 }

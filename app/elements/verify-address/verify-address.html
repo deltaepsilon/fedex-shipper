@@ -8,10 +8,10 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 <link rel="import" href="../../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../../bower_components/firebase-element/firebase-collection.html">
 <link rel="import" href="../../../bower_components/firebase-element/firebase-document.html">
 <link rel="import" href="../../../bower_components/iron-localstorage/iron-localstorage.html">
 <link rel="import" href="../../../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../../../bower_components/paper-input/all-imports.html">
 <link rel="import" href="../../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../../bower_components/paper-fab/paper-fab.html">
 <link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
@@ -21,6 +21,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../../bower_components/gold-phone-input/gold-phone-input.html">
 <link rel="import" href="../../../bower_components/gold-email-input/gold-email-input.html">
+<link rel="import" href="../../../bower_components/gold-zip-input/gold-zip-input.html">
 <link rel="import" href="../../styles/styles.html">
 <dom-module id="verify-address">
   <template>
@@ -31,8 +32,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
     </style>
     <firebase-document id="queue" location="{{ _queueLocation }}"></firebase-document>
-    <iron-localstorage id="toVerify" name="to-verify" value="{{ toVerify }}"></iron-localstorage>
-    <iron-localstorage name="verified" value="{{ verified }}"></iron-localstorage>
+    <iron-localstorage id="toVerify" name="address-to-verify" value="{{ toVerify }}"></iron-localstorage>
+    <iron-localstorage name="address-verified" value="{{ verified }}"></iron-localstorage>
     <paper-material elevation="1">
       <div class="layout horizontal justified">
         <h3>Verified Address</h3>
@@ -57,7 +58,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <paper-dialog id="verifyDialog" modal>
       <h2>Verify From Address</h2>
       <form id="addressForm" is="iron-form" style="min-width: 30vw;">
-        <span>Address: {{ address.phone }}</span>
         <paper-input type="text" label="Name" name="full-name" value="{{ address.name::input }}" required></paper-input>
         <paper-input type="text" label="Company" name="company" value="{{ address.company::input }}"></paper-input>
         <paper-input type="text" label="Street: Line One" name="street" value="{{ address.street1::input }}" required></paper-input>
@@ -65,7 +65,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-input type="text" label="Street: Line Three" name="street3" value="{{ address.street3::input }}"></paper-input>
         <paper-input type="text" label="City" name="city" value="{{ address.city::input }}" required></paper-input>
         <paper-input type="text" label="State" name="state" value="{{ address.state::input }}" required></paper-input>
-        <paper-input type="number" label="ZIP" name="zip" value="{{ address.zip::input }}" required></paper-input>
+        <gold-zip-input label="ZIP" name="zip" value="{{ address.zip::input }}" required></gold-zip-input>
         <gold-phone-input label="Phone" name="phone" value="{{ address.phone::input }}" auto-validate="true" required></gold-phone-input>
         <gold-email-input label="Email" name="email" value="{{ address.email::input }}" auto-validate="true" required></gold-email-input>
         <footer class="layout horizontal end-justified">
@@ -78,11 +78,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </footer>
       </form>
     </paper-dialog>
-    <template is="dom-if" if="{{ verified }}">
-      <paper-material elevation="1">
-        <h3>Verify Package</h3>
-      </paper-material>
-    </template>
   </template>
   <script>
   (function() {
@@ -95,6 +90,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         jwt: Object,
         address: Object,
         toVerify: Object,
+        verified: {
+          type: Object,
+          notify: true
+        },
         verifiedArray: {
           type: Array,
           value: []
@@ -134,11 +133,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _setVerified: function(address) {
         this.$.queue.query.ref().remove();
+        this.set('verified', {});
         this.set('verified', address);
         this.closeVerifyDialog();
       },
 
-      _handleAddressChange: function(address) {
+      _handleAddressChange: function() {
         this.set('toVerify', this.address);
         this.$.toVerify.save();
         this._formValid = this.$.addressForm.validate();

@@ -1,0 +1,256 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/firebase-element/firebase-document.html">
+<link rel="import" href="../../../bower_components/iron-localstorage/iron-localstorage.html">
+<link rel="import" href="../../../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../../../bower_components/paper-input/all-imports.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-fab/paper-fab.html">
+<link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../../bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="../../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../../../bower_components/paper-dialog/paper-dialog.html">
+<dom-module id="get-quote">
+  <template>
+    <style is="custom-style" include="shared-styles"></style>
+    <style>
+    :host {
+      display: block;
+    }
+    
+    .table-list-item:nth-child(odd) {
+      padding-bottom: 2rem;
+    }
+
+    .table-list-item paper-item-body {
+      margin: 1rem 0;
+    }
+    </style>
+    <firebase-document id="queue" location="{{ _queueLocation }}"></firebase-document>
+    <iron-localstorage id="verified" name="parcels-verified" value="{{ parcels }}"></iron-localstorage>
+    <iron-localstorage id="quotes" name="quotes" value="{{ quotes }}" on-iron-localstorage-load-empty="_handleEmptyQuotes"></iron-localstorage>
+    <paper-material elevation="1">
+      <h3>Shipping Quotes</h3>
+      <div class="table-list">
+        <template is="dom-repeat" items="{{ quotes }}">
+          <div class="table-list-item layout horizontal wrap" style="margin-bottom: 2rem;">
+            <div class="layout horizontal flex wrap" style="min-width: 17rem;">
+              <div class="layout vertical end-justified">
+                <paper-item>
+                  <paper-item-body two-line>
+                    <div>
+                      <div>{{ item.return_address.name }}</div>
+                      <div>{{ item.return_address.company }}</div>
+                      <div>{{ item.return_address.street1 }}</div>
+                      <div>{{ item.return_address.street2 }}</div>
+                      <div>{{ item.return_address.street3 }}</div>
+                      <div>{{ item.return_address.city }}</div>
+                      <div>{{ item.return_address.state }}</div>
+                      <div>{{ item.return_address.zip }}</div>
+                      <div>{{ item.return_address.phone }}</div>
+                      <div>{{ item.return_address.email }}</div>
+                    </div>
+                    <div secondary>Return Address</div>
+                  </paper-item-body>
+                </paper-item>
+              </div>
+              <div class="layout vertical end-justified">
+                <paper-item>
+                  <paper-item-body two-line>
+                    <div>
+                      <div>{{ item.to_address.name }}</div>
+                      <div>{{ item.to_address.company }}</div>
+                      <div>{{ item.to_address.street1 }}</div>
+                      <div>{{ item.to_address.street2 }}</div>
+                      <div>{{ item.to_address.street3 }}</div>
+                      <div>{{ item.to_address.city }}</div>
+                      <div>{{ item.to_address.state }}</div>
+                      <div>{{ item.to_address.zip }}</div>
+                      <div>{{ item.to_address.phone }}</div>
+                      <div>{{ item.to_address.email }}</div>
+                    </div>
+                    <div secondary>Destination Address</div>
+                  </paper-item-body>
+                </paper-item>
+              </div>
+              <div class="layout vertical end-justified">
+                <paper-item>
+                  <paper-item-body two-line>
+                    <div>
+                      <div>Weight: {{ item.parcel.weight }} (oz)</div>
+                      <div>{{ item.parcel.predefined_package }}</div>
+                      <template is="dom-if" if="{{ !item.parcel.predefined_package }}">
+                        <div>Height: {{ item.parcel.height }} (in) </div>
+                        <div>Width: {{ item.parcel.width }} (in)</div>
+                        <div>Lenght: {{ item.parcel.length }} (in)</div>
+                      </template>
+                    </div>
+                    <div secondary>Parcel</div>
+                  </paper-item-body>
+                </paper-item>
+              </div>
+              <template is="dom-if" if="{{ item.messages }}">
+                <div class="layout vertical end-justified">
+                <paper-item>
+                  <paper-item-body>
+                    <template is="dom-repeat" items="{{ item.messages }}">
+                      <div class="layout horizontal" style="margin: 1rem 0;">
+                        <iron-icon icon="error" style="margin-right: 1rem;"></iron-icon>
+                        <span class="flex" style="white-space: normal;">{{ item.message }}</span>
+                      </div>
+                    </template>
+                  </paper-item-body>
+                </paper-item>
+              </div>
+              </template>
+            </div>
+            <div class="layout horizontal center-justified">
+              <div class="layout vertical center-justified">
+                <paper-icon-button icon="delete" on-click="_removeQuote" index="[[index]]"></paper-icon-button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+      <div class="layout horizontal center-justified">
+        <paper-fab icon="add" on-click="openDialog" modal></paper-fab>
+      </div>
+    </paper-material>
+    <paper-dialog id="dialog" modal>
+      <h2>Get Quote</h2>
+      <form id="quoteForm" is="iron-form" style="min-width: 30vw;">
+        <paper-dropdown-menu label="Parcel" style="width: 100%;">
+          <paper-menu class="dropdown-content" selected="{{ _selectedIndex }}">
+            <template is="dom-repeat" items="{{ parcels }}">
+              <paper-item value="{{ item.id }}">
+                <span>{{ item.weight }} oz.</span>
+                <template is="dom-if" if="{{ item.predefined_package }}">
+                  <span>{{ item.predefined_package }}</span>
+                </template>
+                <template is="dom-if" if="{{ !item.predefined_package }}">
+                  <span>{{ item.height }}x{{ item.width }}x{{ item.length }} in.</span>
+                </template>
+              </paper-item>
+            </template>
+          </paper-menu>
+        </paper-dropdown-menu>
+        <footer class="layout horizontal end-justified">
+          <div class="layout vertical center-justified">
+            <paper-spinner id="spinner"></paper-spinner>
+          </div>
+          <paper-button class="primary" on-click="closeDialog">Cancel</paper-button>
+          <paper-button class="primary" disabled$="{{ !_formValid }}" on-click="getQuote">Get Quote</paper-button>
+        </footer>
+      </form>
+    </paper-dialog>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'get-quote',
+
+      properties: {
+        jwt: Object,
+        destination: Object,
+        parcels: Array,
+        quotes: {
+          type: Array,
+          value: []
+        },
+        toQuote: Object,
+        quotes: {
+          type: Array,
+          value: []
+        },
+        _queueLocation: String,
+        _selectedIndex: Number,
+        _formValid: {
+          type: Boolean,
+          value: false,
+          computed: '_verify(_selectedIndex)'
+        }
+      },
+
+      observers: ['_setLocation(jwt.uid)'],
+
+      _setLocation: function(uid) {
+        if (uid) {
+          this._queueLocation = window.env.firebase.location + '/queues/getQuote/tasks/' + uid;
+
+          this.$.queue.query.ref().child('shipment').on('value', function(snap) {
+            if (snap.val()) {
+              this.$.spinner.active = false;
+              this._addQuote(snap.val());
+              this.closeDialog();
+            }
+          }.bind(this));
+
+          this.$.queue.addEventListener('data-changed', function() {
+            if (this.$.dialog.opened && this.$.queue.data && this.$.queue.data._error_details && this.$.queue.data._error_details.error) {
+              var toast = document.querySelector('paper-toast');
+              toast.text = this.$.queue.data._error_details.error;
+              toast.show();
+              this.$.waitingSpinner.active = false;
+            }
+          }.bind(this));
+
+        }
+      },
+
+      _verify: function(index) {
+        console.log('index', index, typeof index);
+        return typeof index !== undefined;
+      },
+
+      _handleEmptyQuotes: function() {
+        this.$.quotes.value = [];
+        this.$.quotes.save();
+      },
+
+      _addQuote: function(quote) {
+        this.push('quotes', quote);
+      },
+
+      _removeQuote: function(e) {
+        this.splice('quotes', e.target.parentElement.index, 1);
+      },
+
+      openDialog: function() {
+        this.$.spinner.active = false;
+        this.$.dialog.open();
+      },
+
+      closeDialog: function() {
+        this.$.dialog.close();
+      },
+
+      getQuote: function(e) {
+        var parcel = this.parcels[this._selectedIndex];
+
+        this.$.spinner.active = true;
+        this.$.queue.query.ref().child('_state').remove();
+        this.$.queue.query.ref().child('_error_details').remove();
+        this.$.queue.data = {
+          id: this.jwt.uid,
+          created: (new Date()).toString(),
+          parcel: parcel,
+          fromAddress: this.fromAddress
+        };
+      }
+    });
+  })();
+  </script>
+</dom-module>

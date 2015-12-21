@@ -25,7 +25,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
     </style>
     <firebase-document id="queue" location="{{ _queueLocation }}" data="{{ queue }}"></firebase-document>
-    <iron-localstorage id="quotes" name="quotes" value="{{ quotes }}"></iron-localstorage>
     <iron-localstorage id="labels" name="labels" value="{{ labels }}" on-iron-localstorage-load-empty="_handleEmptyLabels"></iron-localstorage>
     <paper-material elevation="1">
       <h3>Purchase Label</h3>
@@ -109,7 +108,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button raised class="accent" on-click="purchase">Purchase</paper-button>
       </div>
       <div class="fit layout vertical end-justified">
-        <paper-progress id="progress" value="{{ queue.progress }}" style="width: 100%;"></paper-progress>
+        <paper-progress id="progress" value="{{ queue._progress }}" style="width: 100%;"></paper-progress>
       </div>
     </paper-material>
   </template>
@@ -123,7 +122,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       properties: {
         jwt: Object,
         selection: Object,
-        quotes: Array,
         _location: String
       },
 
@@ -135,8 +133,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           this.$.queue.query.ref().child('label').on('value', function(snap) {
             if (snap.val()) {
-              this.$.spinner.active = false;
+              this.$.progress.active = false;
               this._addLabel(snap.val());
+              this._killQuotes();
             }
           }.bind(this));
 
@@ -159,6 +158,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _addLabel: function (label) {
         this.push('labels', label);
+      },
+
+      _killQuotes: function () {
+        var getQuote = document.querySelector('get-quote');
+        if (getQuote) {
+          getQuote.handleEmptyQuotes();
+        }
       },
 
       attached: function () {

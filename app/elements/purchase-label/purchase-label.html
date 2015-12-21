@@ -122,6 +122,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       properties: {
         jwt: Object,
         selection: Object,
+        labels: {
+          type: Array,
+          notify: true
+        },
         _location: String
       },
 
@@ -157,7 +161,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _addLabel: function (label) {
-        this.push('labels', label);
+        this.unshift('labels', label);
       },
 
       _killQuotes: function () {
@@ -168,11 +172,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       attached: function () {
-        this.$.progress.scrollIntoView();
-        setTimeout(function () {
-          window.scroll(0, window.scrollY + 100);  
-        });
-        
+        this.scrollIntoView();
       },
 
       purchase: function() {

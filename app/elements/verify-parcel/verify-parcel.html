@@ -34,7 +34,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <firebase-document id="queue" location="{{ _queueLocation }}"></firebase-document>
     <iron-localstorage id="toVerify" name="parcel-to-verify" value="{{ toVerify }}"></iron-localstorage>
-    <iron-localstorage id="verified" name="parcels-verified" value="{{ verified }}"></iron-localstorage>
+    <iron-localstorage id="verified" name="parcels-verified" value="{{ verified }}" on-iron-localstorage-load-empty="_handleEmptyVerified"></iron-localstorage>
     <paper-material elevation="1">
       <h3>Verified Parcels</h3>
       <div class="table-list">
@@ -154,6 +154,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       observers: ['_setLocation(jwt.uid)', '_handleParcelChange(parcel.*)', '_handlePackageTypeChange(_packageType)'],
 
+      attached: function() {
+        var toast = document.querySelector('toast');
+        this.$.verified.addEventListener('errorMessage-changed', function(e) {
+          console.warn('errorMessage-changed', e);
+        });
+      },
+
       _setLocation: function(uid) {
         if (uid) {
           this._queueLocation = window.env.firebase.location + '/queues/verifyParcel/tasks/' + uid;
@@ -178,6 +185,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
+      _handleEmptyVerified: function() {
+        // this.$.verified.value = [];
+        // this.$.verified.save();
+        this.verified = [];
+      },
+
       _handleParcelChange: function() {
         if (typeof this.parcel === 'object' && Object.keys(this.parcel).length) {
           this.set('toVerify', this.parcel);
@@ -196,9 +209,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _addVerified: function(verified) {
-        if (!this.verified) {
-          this.verified = [];
-        }
         this.push('verified', verified);
       },
 
@@ -249,7 +259,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       deleteParcel: function(e) {
-        this.splice('verified', e.target.parentElement.index, 1);
+        // this.splice('verified', e.target.parentElement.index, 1);
+        this.$.verified.value.splice(e.target.parentElement.index, 1);
+        this.$.verified.save();
+        this.$.verified.reload();
       }
 
     });

@@ -36,22 +36,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <iron-localstorage id="toVerify" name="address-to-verify" value="{{ toVerify }}"></iron-localstorage>
     <iron-localstorage name="address-verified" value="{{ verified }}"></iron-localstorage>
     <paper-material elevation="1">
-      <div class="layout horizontal justified">
-        <h3>Verified Address</h3>
-        <template is="dom-if" if="{{ verified }}">
-          <paper-icon-button icon="delete" on-click="removeVerified"></paper-icon-button>
+      <h3>Verified Address</h3>
+      <div class="layout horizontal wrap">
+        <template is="dom-repeat" items="{{ verifiedArray }}">
+          <paper-list-box>
+            <paper-item>
+              <paper-item-body two-line>
+                <div>{{ item.value }}</div>
+                <div secondary>{{ item.key }}</div>
+              </paper-item-body>
+            </paper-item>
+          </paper-list-box>
         </template>
+        <div class="flex"></div>
+        <div class="layout vertical center-justified">
+          <paper-icon-button icon="delete" on-click="removeVerified"></paper-icon-button>
+        </div>
       </div>
-      <template is="dom-repeat" items="{{ verifiedArray }}">
-        <paper-list-box>
-          <paper-item>
-            <paper-item-body two-line>
-              <div>{{ item.value }}</div>
-              <div secondary>{{ item.key }}</div>
-            </paper-item-body>
-          </paper-item>
-        </paper-list-box>
-      </template>
       <div class="layout horizontal center-justified">
         <paper-fab icon="add" on-click="openVerifyDialog" modal></paper-fab>
       </div>

@@ -43,6 +43,8 @@
     "gold-zip-input": "PolymerElements/gold-zip-input#~1.0.4",
     "paper-radio-button": "PolymerElements/paper-radio-button#~1.0.12",
     "paper-radio-group": "PolymerElements/paper-radio-group#~1.0.8",
-    "paper-progress": "PolymerElements/paper-progress#~1.0.7"
+    "paper-progress": "PolymerElements/paper-progress#~1.0.7",
+    "iron-list": "PolymerElements/iron-list#~1.1.7",
+    "moment": "~2.10.6"
   }
 }

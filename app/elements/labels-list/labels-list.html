@@ -1,0 +1,112 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/firebase-element/firebase-document.html">
+<link rel="import" href="../../../bower_components/iron-localstorage/iron-localstorage.html">
+<link rel="import" href="../../../bower_components/iron-list/iron-list.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../../styles/styles.html">
+<dom-module id="labels-list">
+  <template>
+    <style is="custom-style" include="shared-styles"></style>
+    <style>
+    :host {
+      display: block;
+    }
+    a:visited {
+      color: inherit;
+    }
+    </style>
+    <iron-localstorage id="labels" name="labels" value="{{ labels }}"></iron-localstorage>
+    <paper-material elevation="1">
+      <h3>Purchased Labels</h3>
+      <iron-list class="table-list" items="[[labels]]" as="item" style="height: calc(100vh - 10rem);">
+        <template>
+          <div class="table-list-item layout horizontal justified wrap">
+            <paper-item style="width: 12rem;">
+              <paper-item-body two-line>
+                <div>
+                  <span is="date-time">{{ item.created_at }}</span>
+                </div>
+                <div secondary>Created</div>
+              </paper-item-body>
+            </paper-item>
+            <paper-item style="width: 6rem;">
+              <paper-item-body two-line>
+                <div>{{ item.from_address.zip }}</div>
+                <div secondary>From</div>
+              </paper-item-body>
+            </paper-item>
+            <paper-item style="width: 6rem;">
+              <paper-item-body two-line>
+                <div>{{ item.to_address.zip }}</div>
+                <div secondary>To</div>
+              </paper-item-body>
+            </paper-item>
+            <paper-item style="width: 15rem;">
+              <paper-item-body two-line>
+                <div>{{ item.selected_rate.carrier }} • {{ item.selected_rate.service }} • {{ item.selected_rate.rate }} {{ item.selected_rate.currency }}</div>
+                <div secondary>Service</div>
+              </paper-item-body>
+            </paper-item>
+            <paper-item style="width: 14rem;">
+              <paper-item-body two-line>
+                <div>
+                  <a href$="https://www.google.com/search?q={{item.tracking_code}}" target="_blank">[[item.tracking_code]]</a>
+                </div>
+                <div secondary>Tracking</div>
+              </paper-item-body>
+            </paper-item>
+            <div class="flex layout horizontal end-justified" style="min-width: 14rem;">
+              <div class="layout vertical center-justified">
+                <a href$="[[item.postage_label.label_url]]" download style="width: 7rem;">
+                  <paper-button class="primary">Download</paper-button>
+                </a>
+              </div>
+              <div class="layout vertical center-justified" style="width: 7rem;">
+                <a href$="[[item.postage_label.label_url]]" target="_blank">
+                  <paper-button class="primary">View</paper-button>
+                </a>
+              </div>
+            </div>
+          </div>
+        </template>
+      </iron-list>
+    </paper-material>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'labels-list',
+
+      properties: {
+        labels: {
+          type: Array,
+          value: []
+        }
+      },
+
+      attached: function() {
+        var purchaseLabel = document.querySelector('purchase-label');
+
+      },
+
+      reload: function() {
+        console.log('this.$.labels.value', this.$.labels.value);
+        this.$.labels.reload();
+      }
+    });
+  })();
+  </script>
+</dom-module>

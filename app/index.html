@@ -10,48 +10,72 @@
 </head>
 
 <body>
-  <style type="text/css">
-  body {
-    background: #fafafa;
-    font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    color: #333;
-  }
-  </style>
-  <template id="app" is="dom-bind">
-    <firebase-auth id="firebase-auth" provider="anonymous" auto-login="true"></firebase-auth>
-    <paper-toolbar>
-      <h1 class="top title">Autumn Dental Arts</h1>
-    </paper-toolbar>
-    <verify-address jwt="[[jwt]]" verified="{{ fromAddress }}"></verify-address>
-    <verify-parcel jwt="[[jwt]]" verified="{{ parcels }}"></verify-parcel>
-    <template is="dom-if" if="{{ parcels.length }}">
-      <template is="dom-if" if="{{ fromAddress }}">
-        <get-quote jwt="[[jwt]]" destination="[[env.destination]]" parcels="[[parcels]]" from-address="[[fromAddress]]" selection="{{ selection }}"></get-quote>
-      </template>
-    </template>
-    <template is="dom-if" if="{{ selection }}">
-      <purchase-label jwt="[[jwt]]" selection="[[selection]]"></purchase-label>
-    </template>
-  </template>
+  <fedex-shipper>
+  </fedex-shipper>
   <paper-toast></paper-toast>
-  <script type="text/javascript">
-  window.addEventListener('WebComponentsReady', function() {
-    var app = document.querySelector('#app');
-    var firebaseAuth = document.querySelector('#firebase-auth');
+  <dom-module id="fedex-shipper">
+    <style is="custom-style" include="shared-styles"></style>
+    <style type="text/css">
+    :host {
+      background: #fafafa;
+      font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #333;
+    }
+    </style>
+    <template>
+      <firebase-auth id="firebaseAuth" provider="anonymous" auto-login="true"></firebase-auth>
+      <paper-toolbar>
+        <h1 class="top title">Autumn Dental Arts</h1>
+      </paper-toolbar>
+      <verify-address jwt="[[jwt]]" verified="{{ fromAddress }}"></verify-address>
+      <verify-parcel jwt="[[jwt]]" verified="{{ parcels }}"></verify-parcel>
+      <template is="dom-if" if="{{ parcels.length }}">
+        <template is="dom-if" if="{{ fromAddress }}">
+          <get-quote jwt="[[jwt]]" destination="[[env.destination]]" parcels="[[parcels]]" from-address="[[fromAddress]]" selection="{{ selection }}"></get-quote>
+        </template>
+      </template>
+      <template is="dom-if" if="{{ selection }}">
+        <purchase-label jwt="[[jwt]]" selection="[[selection]]" on-labels-changed="handleLabelsChanged"></purchase-label>
+      </template>
+      <labels-list id="labelsList"></labels-list>
+    </template>
+    <script type="text/javascript">
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'fedex-shipper',
 
-    app.env = window.env;
+        properties: {
+          jwt: Object,
+          env: {
+            type: Object,
+            value: function() {
+              return window.env;
+            }
+          }
+        },
 
-    firebaseAuth.location = window.env.firebase.location;
+        attached: function() {
+          this.$.firebaseAuth.location = window.env.firebase.location;
 
-    firebaseAuth.addEventListener('login', function(e) {
-      app.jwt = e.detail.user;
-    });
+          this.$.firebaseAuth.addEventListener('login', function(e) {
+            this.jwt = e.detail.user;
+          }.bind(this));
 
-    firebaseAuth.addEventListener('logout', function() {
-      firebaseAuth.login();
-    });
-  });
-  </script>
+          this.$.firebaseAuth.addEventListener('logout', function() {
+            firebaseAuth.login();
+          });
+        },
+
+        handleLabelsChanged: function (e) {
+          setTimeout(function () {
+            this.$.labelsList.reload();  
+          }.bind(this));
+        }
+      });
+    })();
+    </script>
+  </dom-module>
 </body>
 
 </html>

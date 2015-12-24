@@ -46,7 +46,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <iron-localstorage id="labels" name="labels" value="{{ labels }}"></iron-localstorage>
     <iron-localstorage id="addressVerified" name="address-verified" value="{{ address }}"></iron-localstorage>
-    <iron-localstorage id="pickup" name="pickup" value="{{ pickup }}" on-iron-localstorage-load-empty="_handleEmptyPickup"></iron-localstorage>
+    <iron-localstorage id="pickup" name="pickup" on-iron-localstorage-load-empty="_handleEmptyPickup"></iron-localstorage>
     <paper-material elevation="1">
       <h3>Purchased Labels</h3>
       <iron-list class="table-list" items="[[labels]]" as="item" style="height: calc(100vh - 10rem);">
@@ -132,7 +132,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </div>
           </div>
           <template is="dom-if" if="{{ editingMinDate }}">
-            <paper-date-picker id="minDate" date="{{ pickupFormatted.minDate }}"  on-date-changed="reloadPickup"></paper-date-picker>
+            <paper-date-picker id="minDate" date="{{ pickupFormatted.minDate }}"  on-date-changed="setMinDate"></paper-date-picker>
           </template>
           <div class="layout horizontal justified">
             <h4>Earliest Pickup Time: </h4>
@@ -144,7 +144,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </div>
           </div>
           <template is="dom-if" if="{{ editingMinTime }}">
-            <paper-time-picker id="minTime" time="{{ pickupFormatted.minTime }}"  on-time-changed="reloadPickup"></paper-time-picker>
+            <paper-time-picker id="minTime" time="{{ pickupFormatted.minTime }}" on-time-changed="setMinTime"></paper-time-picker>
           </template>
           <div class="layout horizontal justified">
             <h4>Latest Pickup Date: </h4>
@@ -156,7 +156,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </div>
           </div>
           <template is="dom-if" if="{{ editingMaxDate }}">
-            <paper-date-picker id="maxDate" date="{{ pickupFormatted.maxDate }}" on-date-changed="reloadPickup"></paper-date-picker>
+            <paper-date-picker id="maxDate" date="{{ pickupFormatted.maxDate }}" on-date-changed="setMaxDate"></paper-date-picker>
           </template>
           <div class="layout horizontal justified">
             <h4>Latest Pickup Time: </h4>
@@ -168,7 +168,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </div>
           </div>
           <template is="dom-if" if="{{ editingMaxTime }}">
-            <paper-time-picker id="maxTime" time="{{ pickupFormatted.maxTime }}"  on-time-changed="reloadPickup"></paper-time-picker>
+            <paper-time-picker id="maxTime" time="{{ pickupFormatted.maxTime }}" on-time-changed="setMaxTime"></paper-time-picker>
           </template>
           <paper-textarea label="Instructions" value="{{ pickup.instructions::input }}"></paper-textarea>
         </form>
@@ -203,8 +203,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: {}
         },
         pickupFormatted: {
-          type: Object,
-          computed: '_getPickupFormatted(pickup.*)'
+          type: Object
         },
         _formValid: {
           type: Boolean,
@@ -214,6 +213,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       attached: function() {
         var purchaseLabel = document.querySelector('purchase-label');
+
+        this.pickup = this._getPickupFormatted();
 
       },
 
@@ -303,16 +304,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this._changeState(4);
       },
 
-      reloadPickup: function () {
-        console.log('reload pickup');
-        this.$.pickup.reload();
+      savePickup: function () {
+        console.log('saving pickup');
+        this.$.pickup.value = this.pickup;
+        this.$.pickup.save();
+      },
+
+      setMinDate: function (e, obj) {
+        this.set('pickup.minDate', obj.value);
+        this.savePickup();
+      },
+
+      setMaxDate: function (e, obj) {
+        this.set('pickup.maxDate', obj.value);
+        this.savePickup();
+      },
+
+      setMinTime: function (e, obj) {
+        this.set('pickup.minTime', obj.value);
+        this.savePickup();
+      },
+
+      setMaxTime: function (e, obj) {
+        this.set('pickup.maxTime', obj.value);
+        this.savePickup();
       },
 
       _getPickupFormatted: function () {
-        var pickup = this.pickup;
-        pickup.minDate = new Date(pickup.minDate);
-        pickup.maxDate = new Date(pickup.maxDate);
-        return pickup;
+        return {
+          minDate: new Date(this.$.pickup.minDate),
+          maxDate: new Date(this.$.pickup.maxDate),
+          minTime: this.$.pickup.minTime,
+          maxTime: this.$.pickup.maxTime
+        };
       }
     });
   })();

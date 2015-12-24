@@ -12,8 +12,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../../bower_components/iron-localstorage/iron-localstorage.html">
 <link rel="import" href="../../../bower_components/iron-list/iron-list.html">
 <link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../../bower_components/iron-icons/editor-icons.html">
 <link rel="import" href="../../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../../../bower_components/paper-input/all-imports.html">
+<link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../../bower_components/paper-date-picker/paper-date-picker.html">
+<link rel="import" href="../../../bower_components/paper-time-picker/paper-time-picker.html">
+<link rel="import" href="../../elements/date-time/date-time.html">
 <link rel="import" href="../../styles/styles.html">
 <dom-module id="labels-list">
   <template>
@@ -22,11 +31,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     :host {
       display: block;
     }
+    
     a:visited {
       color: inherit;
     }
+    
+    .datetime {
+      text-align: right;
+    }
+    
+    .datetime span {
+      margin: 0 1rem;
+    }
     </style>
     <iron-localstorage id="labels" name="labels" value="{{ labels }}"></iron-localstorage>
+    <iron-localstorage id="addressVerified" name="address-verified" value="{{ address }}"></iron-localstorage>
+    <iron-localstorage id="pickup" name="pickup" value="{{ pickup }}" on-iron-localstorage-load-empty="_handleEmptyPickup"></iron-localstorage>
     <paper-material elevation="1">
       <h3>Purchased Labels</h3>
       <iron-list class="table-list" items="[[labels]]" as="item" style="height: calc(100vh - 10rem);">
@@ -68,6 +88,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </paper-item>
             <div class="flex layout horizontal end-justified" style="min-width: 14rem;">
               <div class="layout vertical center-justified">
+                <paper-button class="primary" shipment-id="[[item.id]]" on-click="request">Request Pickup</paper-button>
+              </div>
+              <div class="layout vertical center-justified">
                 <a href$="[[item.postage_label.label_url]]" download style="width: 7rem;">
                   <paper-button class="primary">Download</paper-button>
                 </a>
@@ -82,6 +105,82 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </template>
       </iron-list>
     </paper-material>
+    <paper-dialog id="dialog" modal>
+      <h2>Request Pickup</h2>
+      <paper-dialog-scrollable>
+        <h4>Pickup Address</h4>
+        <div>
+          <div>{{ address.name }}</div>
+          <div>{{ address.company }}</div>
+          <div>{{ address.street1 }}</div>
+          <div>{{ address.street2 }}</div>
+          <div>{{ address.street3 }}</div>
+          <div>{{ address.city }}</div>
+          <div>{{ address.state }}</div>
+          <div>{{ address.zip }}</div>
+          <div>{{ address.phone }}</div>
+          <div>{{ address.email }}</div>
+        </div>
+        <form id="pickupForm" is="iron-form">
+          <div class="layout horizontal justified">
+            <h4>Earliest Pickup Date: </h4>
+            <div class="flex datetime layout vertical center-justified">
+              <span is="date-time" format="ddd, MMM DD">{{ pickup.minDate }}</span>
+            </div>
+            <div class="layout vertical center-justified">
+              <paper-icon-button icon="editor:mode-edit" on-click="editMinDate"></paper-icon-button>
+            </div>
+          </div>
+          <template is="dom-if" if="{{ editingMinDate }}">
+            <paper-date-picker id="minDate" date="{{ pickupFormatted.minDate }}"  on-date-changed="reloadPickup"></paper-date-picker>
+          </template>
+          <div class="layout horizontal justified">
+            <h4>Earliest Pickup Time: </h4>
+            <div class="flex datetime layout vertical center-justified">
+              <span class="datetime" is="date-time" format="HH:mm">{{ pickup.minTime }}</span>
+            </div>
+            <div class="layout vertical center-justified">
+              <paper-icon-button icon="editor:mode-edit" on-click="editMinTime"></paper-icon-button>
+            </div>
+          </div>
+          <template is="dom-if" if="{{ editingMinTime }}">
+            <paper-time-picker id="minTime" time="{{ pickupFormatted.minTime }}"  on-time-changed="reloadPickup"></paper-time-picker>
+          </template>
+          <div class="layout horizontal justified">
+            <h4>Latest Pickup Date: </h4>
+            <div class="flex datetime layout vertical center-justified">
+              <span is="date-time" format="ddd, MMM DD">{{ pickup.maxDate }}</span>
+            </div>
+            <div class="layout vertical center-justified">
+              <paper-icon-button icon="editor:mode-edit" on-click="editMaxDate"></paper-icon-button>
+            </div>
+          </div>
+          <template is="dom-if" if="{{ editingMaxDate }}">
+            <paper-date-picker id="maxDate" date="{{ pickupFormatted.maxDate }}" on-date-changed="reloadPickup"></paper-date-picker>
+          </template>
+          <div class="layout horizontal justified">
+            <h4>Latest Pickup Time: </h4>
+            <div class="flex datetime layout vertical center-justified">
+              <span class="datetime" is="date-time" format="HH:mm">{{ pickup.maxTime }}</span>
+            </div>
+            <div class="layout vertical center-justified">
+              <paper-icon-button icon="editor:mode-edit" on-click="editMaxTime"></paper-icon-button>
+            </div>
+          </div>
+          <template is="dom-if" if="{{ editingMaxTime }}">
+            <paper-time-picker id="maxTime" time="{{ pickupFormatted.maxTime }}"  on-time-changed="reloadPickup"></paper-time-picker>
+          </template>
+          <paper-textarea label="Instructions" value="{{ pickup.instructions::input }}"></paper-textarea>
+        </form>
+      </paper-dialog-scrollable>
+      <footer class="layout horizontal end-justified">
+        <div class="layout vertical center-justified">
+          <paper-spinner id="spinner"></paper-spinner>
+        </div>
+        <paper-button class="primary" dialog-dismiss>Cancel</paper-button>
+        <paper-button class="primary" disabled$="{{ !_formValid }}" on-click="request">Request Pickup</paper-button>
+      </footer>
+    </paper-dialog>
   </template>
   <script>
   (function() {
@@ -94,6 +193,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         labels: {
           type: Array,
           value: []
+        },
+        address: {
+          type: Object,
+          value: {}
+        },
+        pickup: {
+          type: Object,
+          value: {}
+        },
+        pickupFormatted: {
+          type: Object,
+          computed: '_getPickupFormatted(pickup.*)'
+        },
+        _formValid: {
+          type: Boolean,
+          value: '_validate(pickup.*)'
         }
       },
 
@@ -102,9 +217,102 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       },
 
+      _handleEmptyPickup: function() {
+        this.set('pickup', {
+          minDate: new Date(),
+          minTime: '6:00 AM',
+          maxDate: new Date(),
+          maxTime: '6:00 PM'
+        });
+      },
+
       reload: function() {
-        console.log('this.$.labels.value', this.$.labels.value);
         this.$.labels.reload();
+      },
+
+      request: function(e) {
+        this.pickup.shipmentId = e.target.parentElement.getAttribute('shipment-id');
+        this.openDialog();
+      },
+
+      openDialog: function() {
+        this.$.dialog.open();
+      },
+
+      closeDialog: function() {
+        this.$.dialog.close();
+      },
+
+      _validate: function() {
+        if (!this.$.pickupForm.validate()) {
+          return false;
+
+        }
+        if (this.pickup.min_datetime >= pickup.max_datetime) {
+          return false;
+        }
+        return true;
+      },
+
+      _changeState: function(state) {
+        var selector;
+
+        this.editingMinDate = false;
+        this.editingMinTime = false;
+        this.editingMaxDate = false;
+        this.editingMaxTime = false;
+
+        switch (state) {
+          case 1:
+            this.editingMinDate = true;
+            selector = '#minDate';
+            break;
+          case 2:
+            this.editingMinTime = true;
+            selector = '#minTime';
+            break;
+          case 3:
+            this.editingMaxDate = true;
+            selector = '#maxDate';
+            break;
+          case 4:
+            this.editingMaxTime = true;
+            selector = '#maxTime';
+            break;
+        }
+
+        setTimeout(function () {
+          this.querySelector(selector).fire('iron-resize');  
+        }.bind(this));
+        
+      },
+
+      editMinDate: function() {
+        this._changeState(1);
+      },
+
+      editMinTime: function() {
+        this._changeState(2);
+      },
+
+      editMaxDate: function() {
+        this._changeState(3);
+      },
+
+      editMaxTime: function() {
+        this._changeState(4);
+      },
+
+      reloadPickup: function () {
+        console.log('reload pickup');
+        this.$.pickup.reload();
+      },
+
+      _getPickupFormatted: function () {
+        var pickup = this.pickup;
+        pickup.minDate = new Date(pickup.minDate);
+        pickup.maxDate = new Date(pickup.maxDate);
+        return pickup;
       }
     });
   })();

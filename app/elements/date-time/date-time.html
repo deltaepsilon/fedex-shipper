@@ -38,7 +38,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       _getDisplay: function(time) {
-        return moment(time).format('ddd, MMM DD YYYY HH:mm');
+        return moment(time).format(this.getAttribute('format') || 'ddd, MMM DD YYYY HH:mm');
       },
       _setDisplay: function() {
         this.textContent = this._display;

@@ -17,9 +17,11 @@
   },
   "homepage": "https://github.com/deltaepsilon/fedex-shipper#readme",
   "dependencies": {
+    "browser-sync": "^2.10.1",
     "firebase": "^2.3.2",
     "firebase-queue": "^1.2.1",
-    "node-easypost": "^2.0.7"
+    "node-easypost": "^2.0.7",
+    "superstatic": "^4.0.0"
   },
   "devDependencies": {
     "gulp": "^3.9.0",

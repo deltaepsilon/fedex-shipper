@@ -125,7 +125,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         jwt: Object,
         parcel: {
           type: Object,
-          value: {}
+          value: function () {
+            return {
+              weight: 10,
+              height: 10,
+              width: 10,
+              height: 10
+            };
+          }
         },
         toVerify: Object,
         verified: {
@@ -192,12 +199,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _handleParcelChange: function() {
-        if (typeof this.parcel === 'object' && Object.keys(this.parcel).length) {
+        if (this.parcel && typeof this.parcel === 'object' && Object.keys(this.parcel).length) {
           this.set('toVerify', this.parcel);
           this.$.toVerify.save();
         }
 
-        this._formValid = this.$.parcelForm.validate() || (this.parcel.predefined_package && this.parcel.weight);
+        this._formValid = this.$.parcelForm.validate() || (this.parcel && this.parcel.predefined_package && this.parcel.weight);
       },
 
       _handlePackageTypeChange: function(packageType) {

@@ -32,11 +32,14 @@ gulp.task('serve', function () {
     port: 8000,
     server: {
       baseDir: 'app',
+      routes: {
+        "/bower_components": "bower_components"
+      },
       middleware: superstatic()
     }
   });
 
-  gulp.watch("app/*", browserSync.reload);
+  gulp.watch("app/**", browserSync.reload);
 });
 
 gulp.task('default', ['copy', 'vulcanize']);

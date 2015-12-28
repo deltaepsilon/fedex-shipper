@@ -16,6 +16,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       display: block;
     }
     </style>
+    <span>{{ datetime }}</span>
   </template>
   <script>
   (function() {
@@ -24,24 +25,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'date-time',
 
-      extends: 'span',
-
       properties: {
-        time: {
+        format: {
+          type: String,
+          value: 'ddd, MMM DD YYYY HH:mm'
+        },
+        value: {
           type: Number,
           value: new Date().getTime()
         },
-        _display: {
+        datetime: {
           type: String,
-          computed: '_getDisplay(time)',
-          observer: '_setDisplay'
+          computed: '_getDisplay(value)'
         }
       },
-      _getDisplay: function(time) {
-        return moment(time).format(this.getAttribute('format') || 'ddd, MMM DD YYYY HH:mm');
-      },
-      _setDisplay: function() {
-        this.textContent = this._display;
+      _getDisplay: function(value) {
+        if (value === 'Invalid date') {
+          return 'Invalid date';
+        }
+        return moment(new Date(value)).format(this.format);
       }
 
     });

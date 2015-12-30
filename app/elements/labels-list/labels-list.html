@@ -96,7 +96,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               </paper-item-body>
             </paper-item>
             <template is="dom-if" if="{{ item.pickup }}">
-              <paper-item>
+              <paper-item disabled$="{{ item.isArchived }}">
                 <paper-item-body two-line>
                   <div class="layout horizontal">
                     <date-time format="ddd, MMM DD HH:mm" value="[[item.pickup.min_datetime]]"></date-time>
@@ -106,7 +106,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                   <div secondary>Pickup Window</div>
                 </paper-item-body>
               </paper-item>
-              <paper-item>
+              <paper-item disabled$="{{ item.isArchived }}">
                 <paper-item-body two-line>
                   <div>
                     {{ item.pickup.confirmation }}
@@ -114,7 +114,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                   <div secondary>Pickup Confirmation</div>
                 </paper-item-body>
               </paper-item>
-              <paper-item>
+              <paper-item disabled$="{{ item.isArchived }}">
                 <paper-item-body two-line>
                   <div class="layout horizontal">
                     <strong style="text-transform: uppercase;">{{ item.pickup.status }}</strong>
@@ -125,15 +125,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </template>
             <div class="flex layout horizontal end-justified" style="min-width: 14rem; margin-bottom: 1rem;">
               <div class="layout vertical center-justified">
-                <template is="dom-if" if="{{ item.pickup.isCancelled }}">
-                  <paper-button class="primary" shipment-id="[[item.id]]" on-click="openDialog" disabled$="{{ !item.pickup.isCancelled }}">Pickup</paper-button>
+                <template is="dom-if" if="{{ !item.showCancel }}">
+                  <paper-button class="primary" shipment-id="[[item.id]]" on-click="openDialog" disabled$="{{ item.isArchived }}">Pickup</paper-button>
                 </template>
-                <template is="dom-if" if="{{ !item.pickup.isCancelled }}">
+                <template is="dom-if" if="{{ item.showCancel }}">
                   <div class="layout horizontal">
                     <div class="layout vertical center-justified">
                       <paper-spinner></paper-spinner>
                     </div>
-                    <paper-button class="primary" shipment-id="[[item.id]]" on-click="cancelPickup" disabled$="{{ !item.pickup }}">Cancel Pickup</paper-button>
+                    <paper-button class="primary" shipment-id="[[item.id]]" on-click="cancelPickup" disabled$="{{ item.isArchived }}">Cancel Pickup</paper-button>
                   </div>
                 </template>
               </div>
@@ -346,16 +346,53 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           maxTime: this.$.pickup.maxTime || '4:00 PM'
         };
 
+        this._archiveLabels();
+      },
+
+      _archiveLabels: function() {
+        var now = moment();
+        var day = 1000 * 60 * 60 * 24;
+        var ttl = 10 * day;
+        var ttArchive = 3 * day;
+        var i = this.labels.length;
+        var label;
+        var created;
+
+
+        while (i--) {
+          label = this.labels[i];
+          created = moment(label.created_at);
+          if (now.diff(created) > ttl) {
+            this.splice('labels', i, 1);
+          } else if (now.diff(created) > ttArchive) {
+            this.labels[i].isArchived = true;
+          } else {
+            this.labels[i].isArchived = false;
+          }
+        }
+
+        this.$.labels.value = this.labels;
+        this.$.labels.save();
+        this.$.labels.reload();
+
       },
 
       _setLocation: function(uid) {
         var handleErrors = function(queueId, spinnerId) {
           return function() {
-            if (this.$.dialog.opened && this.$[queueId].data && this.$[queueId].data._error_details && this.$[queueId].data._error_details.error) {
-              var toast = document.querySelector('paper-toast');
-              toast.text = this.$[queueId].data._error_details.error;
-              toast.show();
-              this.querySelector('#' + spinnerId).active = false;
+            var queue = this.$[queueId];
+            var delay;
+            if (this.$.dialog.opened && queue.data && queue.data._error_details && queue.data._error_details.error) {
+              delay = moment(queue.data._state_changed).diff();
+              if (delay > -5000) { // This is a little silly... sometimes the delay is positive rather than negative... must be server sync issues
+                var toast = document.querySelector('paper-toast');
+                toast.text = queue.data._error_details.error;
+                toast.show();
+                this.querySelector('#' + spinnerId).active = false;
+              } else {
+                // console.warn('skipping toast', queue.data._error_details.error);
+              }
+
             }
           }.bind(this);
         }.bind(this);
@@ -443,6 +480,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       openDialog: function(e) {
         this._label = this.findLabel(e.target.shipmentId);
+        this._setQuotes([], e.target.shipmentId);
         this.$.addressVerified.reload();
         this.$.dialog.open();
       },
@@ -676,6 +714,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var label = this.findLabel(shipmentId);
 
         label.pickup = pickup;
+        label.showCancel = true;
         this.set('_label.pickup', pickup);
 
         this.$.labels.value = this.labels;
@@ -692,8 +731,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         spinner.setAttribute('id', spinnerId);
 
-        this._setQuotes([], shipmentId);
-
         this.querySelector('#' + spinnerId).active = true;
         this.$.cancelQueue.query.ref().child('_state').remove();
         this.$.cancelQueue.query.ref().child('_error_details').remove();
@@ -706,9 +743,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
       },
 
-      _cancelPickup: function (shipmentId, pickup) {
+      _cancelPickup: function(shipmentId, pickup) {
+        var label = this.findLabel(shipmentId);
+
         pickup.isCancelled = true;
-        this.findLabel(shipmentId).pickup = pickup;
+        label.pickup = pickup;
+        label.showCancel = false;
+
         this.$.labels.value = this.labels;
         this.$.labels.save();
         this.$.labels.reload();

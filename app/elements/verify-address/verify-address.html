@@ -176,7 +176,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         }
 
-        this.splice.apply(this, ['verifiedArray', 0].concat(verifiedArray));
+        this.splice.apply(this, ['verifiedArray', 0, this.verifiedArray.length].concat(verifiedArray));
       },
 
       openVerifyDialog: function() {

@@ -93,7 +93,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     <div>{{ selection.rate.service }}</div>
                     <div>
                       <strong>{{ selection.rate.rate }}</strong>
-
                       <strong>{{ selection.rate.currency }}</strong>
                     </div>
                   </div>
@@ -129,7 +128,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _location: String
       },
 
-      observers: ['_setLocation(jwt.uid)'],
+      observers: ['_setLocation(jwt.uid)', 'reset(selection.*)'],
 
       _setLocation: function(uid) {
         if (uid) {
@@ -139,16 +138,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             if (snap.val()) {
               this.$.progress.active = false;
               this._addLabel(snap.val());
+              this.set('queue._progress', 0);
               this._killQuotes();
             }
           }.bind(this));
 
           this.$.queue.addEventListener('data-changed', function() {
             if (this.$.queue.data && this.$.queue.data._error_details && this.$.queue.data._error_details.error) {
-              var toast = document.querySelector('paper-toast');
-              toast.text = this.$.queue.data._error_details.error;
-              toast.show();
-              this.$.waitingSpinner.active = false;
+              if (moment(this.$.queue.data._state_changed).diff() > -5000) {
+                var toast = document.querySelector('paper-toast');
+                toast.text = this.$.queue.data._error_details.error;
+                toast.show();
+                if (this.$.waitingSpinner) {
+                  this.$.waitingSpinner.active = false;
+                }
+              }
+
             }
           }.bind(this));
 
@@ -160,19 +165,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.labels.save();
       },
 
-      _addLabel: function (label) {
+      _addLabel: function(label) {
         this.unshift('labels', label);
       },
 
-      _killQuotes: function () {
+      _killQuotes: function() {
         var labelQuote = document.querySelector('label-quote');
         if (labelQuote) {
           labelQuote.handleEmptyQuotes();
         }
       },
 
-      attached: function () {
+      reset: function() {
         this.scrollIntoView();
+        if (this.queue && this.queue._progress) {
+          this.set('queue._progress', 0);
+        }
       },
 
       purchase: function() {

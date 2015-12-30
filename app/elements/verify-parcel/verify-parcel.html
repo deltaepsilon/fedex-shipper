@@ -193,8 +193,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _handleEmptyVerified: function() {
-        // this.$.verified.value = [];
-        // this.$.verified.save();
         this.verified = [];
       },
 
@@ -217,6 +215,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _addVerified: function(verified) {
         this.push('verified', verified);
+        this.$.verified.value = this.verified;
+        this.$.verified.save();
+        this.$.verified.reload();
       },
 
       openVerifyDialog: function() {

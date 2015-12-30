@@ -22,6 +22,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../../../bower_components/paper-date-picker/paper-date-picker.html">
 <link rel="import" href="../../../bower_components/paper-time-picker/paper-time-picker.html">
+<link rel="import" href="../../../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../../bower_components/paper-radio-button/paper-radio-button.html">
 <link rel="import" href="../../elements/date-time/date-time.html">
 <link rel="import" href="../../styles/styles.html">
 <dom-module id="labels-list">
@@ -43,11 +45,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     .datetime span {
       margin: 0 1rem;
     }
+    
+    footer {
+      margin-bottom: 1rem;
+    }
     </style>
     <iron-localstorage id="labels" name="labels" value="{{ labels }}"></iron-localstorage>
     <iron-localstorage id="addressVerified" name="address-verified" value="{{ address }}"></iron-localstorage>
     <iron-localstorage id="pickup" name="pickup" on-iron-localstorage-load-empty="_handleEmptyPickup"></iron-localstorage>
-    <firebase-document id="queue" location="{{ _queueLocation }}"></firebase-document>
+    <firebase-document id="quoteQueue" location="{{ _quoteQueueLocation }}"></firebase-document>
+    <firebase-document id="purchaseQueue" location="{{ _purchaseQueueLocation }}"></firebase-document>
+    <firebase-document id="cancelQueue" location="{{ _cancelQueueLocation }}"></firebase-document>
     <paper-material elevation="1">
       <h3>Purchased Labels</h3>
       <iron-list class="table-list" items="[[labels]]" as="item" style="height: calc(100vh - 10rem);">
@@ -87,9 +95,47 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 <div secondary>Tracking</div>
               </paper-item-body>
             </paper-item>
-            <div class="flex layout horizontal end-justified" style="min-width: 14rem;">
+            <template is="dom-if" if="{{ item.pickup }}">
+              <paper-item>
+                <paper-item-body two-line>
+                  <div class="layout horizontal">
+                    <date-time format="ddd, MMM DD HH:mm" value="[[item.pickup.min_datetime]]"></date-time>
+                    <strong>&nbsp;&nbsp;to&nbsp;&nbsp;</strong>
+                    <date-time format="ddd, MMM DD HH:mm" value="[[item.pickup.max_datetime]]"></date-time>
+                  </div>
+                  <div secondary>Pickup Window</div>
+                </paper-item-body>
+              </paper-item>
+              <paper-item>
+                <paper-item-body two-line>
+                  <div>
+                    {{ item.pickup.confirmation }}
+                  </div>
+                  <div secondary>Pickup Confirmation</div>
+                </paper-item-body>
+              </paper-item>
+              <paper-item>
+                <paper-item-body two-line>
+                  <div class="layout horizontal">
+                    <strong style="text-transform: uppercase;">{{ item.pickup.status }}</strong>
+                  </div>
+                  <div secondary>Pickup Status</div>
+                </paper-item-body>
+              </paper-item>
+            </template>
+            <div class="flex layout horizontal end-justified" style="min-width: 14rem; margin-bottom: 1rem;">
               <div class="layout vertical center-justified">
-                <paper-button class="primary" shipment-id="[[item.id]]" on-click="getPickupQuotes">Get Pickup Quotes</paper-button>
+                <template is="dom-if" if="{{ item.pickup.isCancelled }}">
+                  <paper-button class="primary" shipment-id="[[item.id]]" on-click="openDialog" disabled$="{{ !item.pickup.isCancelled }}">Pickup</paper-button>
+                </template>
+                <template is="dom-if" if="{{ !item.pickup.isCancelled }}">
+                  <div class="layout horizontal">
+                    <div class="layout vertical center-justified">
+                      <paper-spinner></paper-spinner>
+                    </div>
+                    <paper-button class="primary" shipment-id="[[item.id]]" on-click="cancelPickup" disabled$="{{ !item.pickup }}">Cancel Pickup</paper-button>
+                  </div>
+                </template>
               </div>
               <div class="layout vertical center-justified">
                 <a href$="[[item.postage_label.label_url]]" download style="width: 7rem;">
@@ -111,16 +157,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <paper-dialog-scrollable>
         <h4>Pickup Address</h4>
         <div>
-          <div>{{ address.name }}</div>
-          <div>{{ address.company }}</div>
-          <div>{{ address.street1 }}</div>
-          <div>{{ address.street2 }}</div>
-          <div>{{ address.street3 }}</div>
-          <div>{{ address.city }}</div>
-          <div>{{ address.state }}</div>
-          <div>{{ address.zip }}</div>
-          <div>{{ address.phone }}</div>
-          <div>{{ address.email }}</div>
+          <div>{{ _label.from_address.address.name }}</div>
+          <div>{{ _label.from_address.company }}</div>
+          <div>{{ _label.from_address.street1 }}</div>
+          <div>{{ _label.from_address.street2 }}</div>
+          <div>{{ _label.from_address.street3 }}</div>
+          <div>{{ _label.from_address.city }}</div>
+          <div>{{ _label.from_address.state }}</div>
+          <div>{{ _label.from_address.zip }}</div>
+          <div>{{ _label.from_address.phone }}</div>
+          <div>{{ _label.from_address.email }}</div>
         </div>
         <form id="pickupForm" is="iron-form">
           <div class="layout horizontal justified">
@@ -169,16 +215,48 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </div>
           </div>
           <paper-time-picker id="maxTime" time="{{ pickup.maxTime }}" on-time-changed="setMaxTime" hidden$="[[!editingMaxTime]]"></paper-time-picker>
-          <paper-textarea label="Instructions" value="{{ pickup.instructions::input }}"></paper-textarea>
+          <paper-textarea label="Instructions" value="{{ pickup.instructions::input }}" required></paper-textarea>
         </form>
+        <template is="dom-repeat" items="{{ _label.pickup_quotes.messages }}">
+          <paper-item>
+            <paper-item-body two-line>
+              <div style="white-space: normal; max-width: 30rem;">
+                {{ item.carrier }}: {{ item.message }}
+              </div>
+              <div secondary>
+                Error
+              </div>
+            </paper-item-body>
+          </paper-item>
+        </template>
       </paper-dialog-scrollable>
       <footer class="layout horizontal end-justified">
         <div class="layout vertical center-justified">
-          <paper-spinner id="spinner"></paper-spinner>
+          <paper-spinner id="quoteSpinner"></paper-spinner>
         </div>
         <paper-button class="primary" dialog-dismiss>Cancel</paper-button>
-        <paper-button class="primary" disabled$="{{ !_formValid }}" on-click="sendRequest">Request Pickup</paper-button>
+        <paper-button class="primary" disabled$="{{ !_pickupValid }}" on-click="getQuotes">Get Quotes</paper-button>
       </footer>
+      <template is="dom-if" if="{{ _label.pickup_quotes.pickup_rates.length }}">
+        <hr style="margin-bottom: 2rem;" />
+        <h2>Purchase Pickup</h2>
+        <paper-radio-group class="layout vertical" selected="{{ _pickupRateId }}">
+          <template is="dom-repeat" items="{{ _label.pickup_quotes.pickup_rates }}">
+            <paper-radio-button name="[[item.id]]">
+              <strong>{{ item.rate }} </strong>
+              <strong>{{ item.currency }}</strong>
+              <span>{{ item.carrier }}: {{ item.service }}</span>
+            </paper-radio-button>
+          </template>
+        </paper-radio-group>
+        <footer class="layout horizontal end-justified">
+          <div class="layout vertical center-justified">
+            <paper-spinner id="purchaseSpinner"></paper-spinner>
+          </div>
+          <paper-button class="primary" dialog-dismiss>Cancel</paper-button>
+          <paper-button class="primary" disabled$="{{ !_purchaseValid }}" on-click="purchase" style="margin-right: 45px;">Purchase</paper-button>
+        </footer>
+      </template>
     </paper-dialog>
   </template>
   <script>
@@ -221,9 +299,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           value: false
         },
-        _formValid: {
+        _pickupValid: {
           type: Boolean,
-          value: '_validate(pickup.*)'
+          computed: '_validate(pickup.*)'
         },
         _dateFormat: {
           type: String,
@@ -240,18 +318,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: function() {
             return new Date();
           }
+        },
+        _label: {
+          type: Object,
+          notify: true
+        },
+        _pickupRateId: {
+          type: String
+        },
+        _purchaseValid: {
+          type: Boolean,
+          value: false,
+          computed: '_getPurchaseValid(_pickupRateId)'
         }
       },
 
-      observers: ['_setLocation(jwt.uid)'],
+      observers: ['_setLocation(jwt.uid)', '_resize(_label.*)'],
 
       attached: function() {
         var purchaseLabel = document.querySelector('purchase-label');
-        var now = moment().format(this._dateFormat);
+        var tomorrow = moment().add(1, 'day').format(this._dateFormat);
 
         this.pickup = {
-          minDate: this.$.pickup.minDate ? moment(this.$.pickup.minDate).format(this._dateFormat) : now,
-          maxDate: this.$.pickup.maxDate ? moment(this.$.pickup.maxDate).format(this._dateFormat) : now,
+          minDate: this.$.pickup.minDate ? moment(this.$.pickup.minDate).format(this._dateFormat) : tomorrow,
+          maxDate: this.$.pickup.maxDate ? moment(this.$.pickup.maxDate).format(this._dateFormat) : tomorrow,
           minTime: this.$.pickup.minTime || '8:00 AM',
           maxTime: this.$.pickup.maxTime || '4:00 PM'
         };
@@ -259,47 +349,101 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _setLocation: function(uid) {
-        if (uid) {
-          this._queueLocation = window.env.firebase.location + '/queues/pickupQuote/tasks/' + uid;
-
-          this.$.queue.query.ref().child('quote').on('value', function(snap) {
-            if (snap.val()) {
-              this.$.spinner.active = false;
-              this._setQuote(snap.val());
-              this.closeDialog();
-            }
-          }.bind(this));
-
-          this.$.queue.addEventListener('data-changed', function() {
-            if (this.$.dialog.opened && this.$.queue.data && this.$.queue.data._error_details && this.$.queue.data._error_details.error) {
+        var handleErrors = function(queueId, spinnerId) {
+          return function() {
+            if (this.$.dialog.opened && this.$[queueId].data && this.$[queueId].data._error_details && this.$[queueId].data._error_details.error) {
               var toast = document.querySelector('paper-toast');
-              toast.text = this.$.queue.data._error_details.error;
+              toast.text = this.$[queueId].data._error_details.error;
               toast.show();
-              this.$.spinner.active = false;
+              this.querySelector('#' + spinnerId).active = false;
+            }
+          }.bind(this);
+        }.bind(this);
+
+        if (uid) {
+          /*
+           * Locations
+           */
+          this._quoteQueueLocation = window.env.firebase.location + '/queues/pickupQuote/tasks/' + uid;
+          this._purchaseQueueLocation = window.env.firebase.location + '/queues/pickupPurchase/tasks/' + uid;
+          this._cancelQueueLocation = window.env.firebase.location + '/queues/pickupCancel/tasks/' + uid;
+
+          /*
+           * Success handlers
+           */
+          this.$.quoteQueue.query.ref().child('quote').on('value', function(snap) {
+            if (snap.val()) {
+              this.$.quoteSpinner.active = false;
+              this._setQuotes(snap.val());
             }
           }.bind(this));
+
+          this.$.purchaseQueue.query.ref().child('pickup').on('value', function(snap) {
+            if (snap.val()) {
+              var purchaseSpinner = this.querySelector('#purchaseSpinner');
+
+              if (purchaseSpinner) {
+                purchaseSpinner.active = false;
+              }
+              this._setPickup(snap.val());
+            }
+          }.bind(this));
+
+          this.$.cancelQueue.query.ref().child('cancelled').on('value', function(snap) {
+            if (snap.val()) {
+              var cancelled = snap.val();
+              var spinner = this.querySelector('#' + cancelled.spinnerId);
+
+              if (spinner) {
+                spinner.active = false;
+              }
+              this._cancelPickup(cancelled.shipmentId, cancelled.pickup);
+            }
+          }.bind(this));
+
+          /*
+           * Error handlers
+           */
+          this.$.quoteQueue.addEventListener('data-changed', handleErrors('quoteQueue', 'quoteSpinner'));
+          this.$.purchaseQueue.addEventListener('data-changed', handleErrors('purchaseQueue', 'purchaseSpinner'));
+          this.$.cancelQueue.addEventListener('data-changed', handleErrors('cancelQueue', 'cancelSpinner'));
+
         }
+      },
+
+      _resize: function() {
+        setTimeout(function() {
+          this.$.dialog.fit();
+        }.bind(this));
       },
 
       _handleEmptyPickup: function() {
         this.set('pickup', {
-          minDate: moment().format(this._dateFormat),
+          minDate: moment().add(1, 'day').format(this._dateFormat),
           minTime: '8:00 AM',
-          maxDate: moment().format(this._dateFormat),
+          maxDate: moment().add(1, 'day').format(this._dateFormat),
           maxTime: '4:00 PM'
         });
       },
 
+      findLabel: function(shipmentId) {
+        var i = this.labels.length;
+
+        while (i--) {
+          if (this.labels[i].id === shipmentId) {
+            return this.labels[i];
+          }
+        }
+      },
+
       reload: function() {
         this.$.labels.reload();
+        this.$.addressVerified.reload();
       },
 
-      getPickupQuotes: function(e) {
-        this.pickup.shipmentId = e.target.shipmentId;
-        this.openDialog();
-      },
-
-      openDialog: function() {
+      openDialog: function(e) {
+        this._label = this.findLabel(e.target.shipmentId);
+        this.$.addressVerified.reload();
         this.$.dialog.open();
       },
 
@@ -310,7 +454,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _validate: function() {
         if (!this.$.pickupForm.validate()) {
           return false;
-
+        }
+        if (!this.address) {
+          return false;
+        }
+        if (!this.pickup.instructions) {
+          return false;
         }
         if (this.pickup.min_datetime >= pickup.max_datetime) {
           return false;
@@ -349,12 +498,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var minDate = this.querySelector('#minDate');
           var maxDate = this.querySelector('#maxDate');
           var maxTime = this.querySelector('#maxTime');
-          var yesterday = moment().subtract(1, 'day')._d;
+          var today = moment()._d;
+          // var yesterday = moment().subtract(1, 'day')._d;
           if (minDate) {
-            minDate.minDate = yesterday;
+            minDate.minDate = today;
           }
           if (maxDate) {
-            maxDate.minDate = yesterday;
+            maxDate.minDate = today;
 
           }
           this.querySelector(selector).fire('iron-resize');
@@ -379,7 +529,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       savePickup: function() {
-        console.log('saving pickup');
         this.validatePickup();
         this.$.pickup.value = this.pickup;
         this.$.pickup.save();
@@ -443,7 +592,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
 
           if (JSON.stringify(this.pickup) !== JSON.stringify(pickup)) {
-            console.log('setting pickup', pickup);
             this._minDate = new Date(pickup.minDate);
             this._maxDate = new Date(pickup.maxDate);
             this.set('pickup', pickup);
@@ -471,21 +619,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.savePickup();
       },
 
-      sendRequest: function() {
-        var shipmentId = this.pickup.shipmentId;
-        var address;
+      getQuotes: function() {
+        var shipmentId = this._label.id;
+        var label = this.findLabel(shipmentId);
+        var address = label ? label.from_address : false;
         var utcFormat = 'YYYY-MM-DD HH:mm:ss';
 
-        this.labels.forEach(function(label) {
-          if (label.id === shipmentId) {
-            address = label.from_address;
-          }
-        }.bind(this));
-
-        this.$.spinner.active = true;
-        this.$.queue.query.ref().child('_state').remove();
-        this.$.queue.query.ref().child('_error_details').remove();
-        this.$.queue.data = {
+        this.$.quoteSpinner.active = true;
+        this.$.quoteQueue.query.ref().child('_state').remove();
+        this.$.quoteQueue.query.ref().child('_error_details').remove();
+        this.$.quoteQueue.data = {
           id: this.jwt.uid,
           created: (new Date()).toString(),
           minDatetime: this._composeDate(this.pickup.minDate, this.pickup.minTime).utc().format(utcFormat),
@@ -496,16 +639,79 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
       },
 
-      _setQuote: function (quote) {
-        var shipmentId = this.pickup.shipmentId;
+      _setQuotes: function(quotes, shipmentId) {
+        var shipmentId = shipmentId || this._label.id;
+        var label = this.findLabel(shipmentId);
 
-        this.labels.forEach(function (label) {
-          if (label.id === shipmentId) {
-            label.pickup_quotes = quote;
-          }
-        });
+        label.pickup_quotes = quotes;
+        this.set('_label.pickup_quotes', quotes);
+        if (quotes.pickup_rates && quotes.pickup_rates.length) {
+          this._pickupRateId = quotes.pickup_rates[0].id;
+        }
+
         this.$.labels.value = this.labels;
         this.$.labels.save();
+      },
+
+      purchase: function(e) {
+        this.querySelector('#purchaseSpinner').active = true;
+        this.$.purchaseQueue.query.ref().child('_state').remove();
+        this.$.purchaseQueue.query.ref().child('_error_details').remove();
+        this.$.purchaseQueue.data = {
+          id: this.jwt.uid,
+          created: (new Date()).toString(),
+          pickupId: this._label.pickup_quotes.id,
+          pickupRateId: this._pickupRateId,
+          shipmentId: this._label.id,
+
+        };
+      },
+
+      _getPurchaseValid: function(rateId) {
+        return !!rateId;
+      },
+
+      _setPickup: function(pickup) {
+        var shipmentId = this._label.id;
+        var label = this.findLabel(shipmentId);
+
+        label.pickup = pickup;
+        this.set('_label.pickup', pickup);
+
+        this.$.labels.value = this.labels;
+        this.$.labels.save();
+        this.$.labels.reload();
+        this.closeDialog();
+      },
+
+      cancelPickup: function(e) {
+        var shipmentId = e.target.shipmentId;
+        var label = this.findLabel(shipmentId);
+        var spinner = e.target.parentElement.querySelector('paper-spinner');
+        var spinnerId = label.pickup.confirmation;
+
+        spinner.setAttribute('id', spinnerId);
+
+        this._setQuotes([], shipmentId);
+
+        this.querySelector('#' + spinnerId).active = true;
+        this.$.cancelQueue.query.ref().child('_state').remove();
+        this.$.cancelQueue.query.ref().child('_error_details').remove();
+        this.$.cancelQueue.data = {
+          id: this.jwt.uid,
+          created: (new Date()).toString(),
+          pickupId: label.pickup.id,
+          spinnerId: spinnerId,
+          shipmentId: shipmentId
+        };
+      },
+
+      _cancelPickup: function (shipmentId, pickup) {
+        pickup.isCancelled = true;
+        this.findLabel(shipmentId).pickup = pickup;
+        this.$.labels.value = this.labels;
+        this.$.labels.save();
+        this.$.labels.reload();
       }
     });
   })();

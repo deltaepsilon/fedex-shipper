@@ -10,14 +10,14 @@ module.exports = function (queuesRef) {
       sanitize: false
     };
 
-  new Queue(queuesRef.child('getQuote'), options, function (data, progress, resolve, reject) {
+  new Queue(queuesRef.child('labelQuote'), options, function (data, progress, resolve, reject) {
     var created = data.created,
       shipment = {
         to_address: env.destination,
         from_address: data.fromAddress,
         parcel: data.parcel
       },
-      taskRef = queuesRef.child('getQuote').child('tasks').child(data.id),
+      taskRef = queuesRef.child('labelQuote').child('tasks').child(data.id),
       timer = setTimeout(function () {
         resolve();
       }, 1000 * 30);

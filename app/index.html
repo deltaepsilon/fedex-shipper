@@ -27,15 +27,15 @@
       <paper-toolbar>
         <h1 class="top title">Autumn Dental Arts</h1>
       </paper-toolbar>
-      <verify-address jwt="[[jwt]]" verified="{{ fromAddress }}"></verify-address>
+      <verify-address id="verifyAddress" jwt="[[jwt]]" verified="{{ fromAddress }}" on-verified-changed="reloadLabelsList"></verify-address>
       <verify-parcel jwt="[[jwt]]" verified="{{ parcels }}"></verify-parcel>
       <template is="dom-if" if="{{ parcels.length }}">
         <template is="dom-if" if="{{ fromAddress }}">
-          <get-quote jwt="[[jwt]]" destination="[[env.destination]]" parcels="[[parcels]]" from-address="[[fromAddress]]" selection="{{ selection }}"></get-quote>
+          <label-quote jwt="[[jwt]]" destination="[[env.destination]]" parcels="[[parcels]]" from-address="[[fromAddress]]" selection="{{ selection }}"></label-quote>
         </template>
       </template>
       <template is="dom-if" if="{{ selection }}">
-        <purchase-label jwt="[[jwt]]" selection="[[selection]]" on-labels-changed="handleLabelsChanged"></purchase-label>
+        <purchase-label jwt="[[jwt]]" selection="[[selection]]" on-labels-changed="reloadLabelsList"></purchase-label>
       </template>
       <labels-list id="labelsList" jwt="[[jwt]]"></labels-list>
     </template>
@@ -67,9 +67,9 @@
           });
         },
 
-        handleLabelsChanged: function (e) {
-          setTimeout(function () {
-            this.$.labelsList.reload();  
+        reloadLabelsList: function(e) {
+          setTimeout(function() {
+            this.$.labelsList.reload();
           }.bind(this));
         }
       });

@@ -49,9 +49,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-list-box>
         </template>
         <div class="flex"></div>
-        <div class="layout vertical center-justified">
-          <paper-icon-button icon="delete" on-click="removeVerified"></paper-icon-button>
-        </div>
+        <template is="dom-if" if="{{ verifiedArray.length }}">
+          <div class="layout vertical center-justified">
+            <paper-icon-button icon="delete" on-click="removeVerified"></paper-icon-button>
+          </div>
+        </template>
       </div>
       <div class="layout horizontal center-justified">
         <paper-fab icon="add" on-click="openVerifyDialog" modal></paper-fab>
@@ -67,7 +69,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-input type="text" label="Street: Line Three" name="street3" value="{{ address.street3::input }}"></paper-input>
         <paper-input type="text" label="City" name="city" value="{{ address.city::input }}" required></paper-input>
         <paper-input type="text" label="State" name="state" value="{{ address.state::input }}" required></paper-input>
-        <gold-zip-input label="ZIP" name="zip" value="{{ address.zip::input }}" required></gold-zip-input>
+        <gold-zip-input label="ZIP" name="zip" value="{{ address.zip::input }}" auto-validate="true" required></gold-zip-input>
         <gold-phone-input label="Phone" name="phone" value="{{ address.phone::input }}" auto-validate="true" required></gold-phone-input>
         <gold-email-input label="Email" name="email" value="{{ address.email::input }}" auto-validate="true" required></gold-email-input>
         <footer class="layout horizontal end-justified">
@@ -183,6 +185,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         if (!this.toVerify.phone) {
           this.toVerify.phone = '';
+        }
+        if (!this.toVerify.zip) {
+          this.toVerify.zip = '';
         }
         this.address = this.toVerify;
         this.$.verifySpinner.active = false;

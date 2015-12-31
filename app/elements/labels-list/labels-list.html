@@ -126,7 +126,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <div class="flex layout horizontal end-justified" style="min-width: 14rem; margin-bottom: 1rem;">
               <div class="layout vertical center-justified">
                 <template is="dom-if" if="{{ !item.showCancel }}">
-                  <paper-button class="primary" shipment-id="[[item.id]]" on-click="openDialog" disabled$="{{ item.isArchived }}">Pickup</paper-button>
+                  <paper-button class="primary" shipment-id="[[item.id]]" on-click="openDialog" disabled$="{{ item.isArchived }}">Schedule a Pickup</paper-button>
                 </template>
                 <template is="dom-if" if="{{ item.showCancel }}">
                   <div class="layout horizontal">

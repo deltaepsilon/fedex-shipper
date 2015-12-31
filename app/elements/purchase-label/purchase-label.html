@@ -104,7 +104,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div class="layout horizontal center-justified" style="position: relative; z-index: 1;">
-        <paper-button raised class="accent" on-click="purchase">Purchase</paper-button>
+        <paper-button raised class="accent" on-click="purchase" disabled$="{{ _purchasing }}">Purchase</paper-button>
       </div>
       <div class="fit layout vertical end-justified">
         <paper-progress id="progress" value="{{ queue._progress }}" style="width: 100%;"></paper-progress>
@@ -125,7 +125,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Array,
           notify: true
         },
-        _location: String
+        _location: String,
+        _purchasing: Boolean
       },
 
       observers: ['_setLocation(jwt.uid)', 'reset(selection.*)'],
@@ -137,6 +138,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.$.queue.query.ref().child('label').on('value', function(snap) {
             if (snap.val()) {
               this.$.progress.active = false;
+              this._purchasing = false;
               this._addLabel(snap.val());
               this.set('queue._progress', 0);
               this._killQuotes();
@@ -151,6 +153,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 toast.show();
                 if (this.$.waitingSpinner) {
                   this.$.waitingSpinner.active = false;
+                  this._purchasing = false;
                 }
               }
 
@@ -179,11 +182,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       reset: function() {
         this.scrollIntoView();
         if (this.queue && this.queue._progress) {
+          this._purchasing = false;
           this.set('queue._progress', 0);
         }
       },
 
       purchase: function() {
+        this._purchasing = true;
         this.$.queue.query.ref().child('_state').remove();
         this.$.queue.query.ref().child('_error_details').remove();
         this.$.queue.data = {

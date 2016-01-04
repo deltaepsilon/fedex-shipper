@@ -9,6 +9,7 @@ var FirebaseTools = require('firebase-tools');
 var env = require('./env.json').servers[process.env.NODE_ENV];
 var shell = require('gulp-shell');
 var fs = require('fs');
+var firebaseConfig = require('./firebase.json');
 
 gulp.task('copy', function () {
   return gulp.src([
@@ -46,20 +47,20 @@ gulp.task('env', function (done) {
   });
 })
 
-gulp.task('make-public', function () {
-  var firebaseConfig = require('./firebase.json');
+gulp.task('make-public', function (done) {
   firebaseConfig.public = 'public';
-  fs.writeFile('./firebase.json', JSON.stringify(firebaseConfig), 'utf8', function (err) {
-    console.log('err');
-  });
+  console.log('make-public', firebaseConfig);
+  console.log(JSON.stringify(firebaseConfig));
+  fs.writeFileSync('./firebase.json', JSON.stringify(firebaseConfig), 'utf8');
+  done();
 });
 
 gulp.task('make-app', function (done) {
-  var firebaseConfig = require('./firebase.json');
   firebaseConfig.public = 'app';
-  fs.writeFile('./firebase.json', JSON.stringify(firebaseConfig), 'utf8', function (err) {
-    done();
-  });
+  console.log('make-app', firebaseConfig);
+  console.log(JSON.stringify(firebaseConfig));
+  fs.writeFileSync('./firebase.json', JSON.stringify(firebaseConfig), 'utf8');
+  done();
 });
 
 gulp.task('firebase-deploy', shell.task(['firebase deploy']));
@@ -90,7 +91,9 @@ gulp.task('serve', ['make-app', 'superstatic']);
 
 gulp.task('default', ['copy', 'vulcanize']);
 
-gulp.task('deploy', ['copy', 'vulcanize', 'env', 'make-public', 'firebase-deploy', 'done']);
+gulp.task('deploy', ['copy', 'vulcanize', 'env', 'make-public', 'done']);
+
+gulp.task('test', ['make-public', 'make-app', 'done']);
 
 // gulp.on('stop', function () {
 //    process.nextTick(function () {

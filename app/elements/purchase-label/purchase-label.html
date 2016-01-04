@@ -107,7 +107,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button raised class="accent" on-click="purchase" disabled$="{{ _purchasing }}">Purchase</paper-button>
       </div>
       <div class="fit layout vertical end-justified">
-        <paper-progress id="progress" value="{{ queue._progress }}" style="width: 100%;"></paper-progress>
+        <paper-progress id="progress" value="[[queue._progress]]" style="width: 100%;"></paper-progress>
       </div>
     </paper-material>
   </template>
@@ -136,11 +136,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this._queueLocation = window.env.firebase.location + '/queues/purchaseLabel/tasks/' + uid;
 
           this.$.queue.query.ref().child('label').on('value', function(snap) {
-            if (snap.val()) {
+            var task = snap.val();
+            if (task) {
               this.$.progress.active = false;
               this._purchasing = false;
               this._addLabel(snap.val());
-              this.set('queue._progress', 0);
+              if (task._progress) {
+                this.set('queue._progress', 0);  
+              }
               this._killQuotes();
             }
           }.bind(this));
@@ -181,10 +184,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       reset: function() {
         this.scrollIntoView();
-        if (this.queue && this.queue._progress) {
-          this._purchasing = false;
-          this.set('queue._progress', 0);
-        }
+        this.$.progress.value = 0;
+        this._purchasing = false;
       },
 
       purchase: function() {

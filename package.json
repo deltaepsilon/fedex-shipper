@@ -2,9 +2,14 @@
   "name": "fedex-shipper",
   "version": "1.0.0",
   "description": "",
-  "main": "workers.js",
+  "engines": {
+    "node": ">=5.0.0"
+  },
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "monitor": "nodemon app.js",
+    "deploy": "gulp deploy && gcloud preview app deploy app.yaml --promote"
   },
   "repository": {
     "type": "git",
@@ -24,9 +29,11 @@
     "superstatic": "^4.0.0"
   },
   "devDependencies": {
+    "firebase-tools": "^2.2.0",
     "gulp": "^3.9.0",
     "gulp-copy": "0.0.2",
     "gulp-minify-inline": "^0.1.1",
+    "gulp-shell": "^0.5.1",
     "gulp-uglify": "^1.5.1",
     "gulp-vulcanize": "^6.1.0"
   }

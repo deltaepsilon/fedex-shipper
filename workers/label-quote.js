@@ -1,14 +1,11 @@
-var env = require('../app/env.js').env,
+var env = require('../services/utility').env,
   Firebase = require('firebase'),
   Queue = require('firebase-queue'),
   UtilityService = require('../services/utility'),
   easypost = require('node-easypost')(process.env.FEDEX_EASYPOST_API_KEY);
 
-module.exports = function (queuesRef) {
-  var ref = queuesRef.parent(),
-    options = {
-      sanitize: false
-    };
+module.exports = function (queuesRef, options) {
+  var ref = queuesRef.parent();
 
   new Queue(queuesRef.child('labelQuote'), options, function (data, progress, resolve, reject) {
     var created = data.created,

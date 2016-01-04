@@ -1,4 +1,9 @@
+var Firebase = require('firebase');
+var env = require('../env.json').servers[process.env.NODE_ENV];
+var secret = process.env.FEDEX_FIREBASE_SECRET;
+
 module.exports = {
+  env: env,
   firebaseSafe: function (incoming) {
     var result,
       clean = function (obj) {
@@ -16,5 +21,11 @@ module.exports = {
       };
 
     return clean(incoming);
+  },
+  log: function (payload) {
+    var logsRef = new Firebase(env.firebase.location + '/logs');
+    logsRef.authWithCustomToken(secret, function (err, authData) {
+      logsRef.push(payload);
+    });
   }
 };

@@ -2,5 +2,6 @@
 favicon.ico
 bower_components
 node_modules
+app.yaml
 public
-app/env.js
+env.json

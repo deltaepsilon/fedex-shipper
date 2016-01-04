@@ -1,8 +1,12 @@
-var env = require('./app/env.js').env,
+var env = require('./services/utility').env,
   secret = process.env.FEDEX_FIREBASE_SECRET,
   Firebase = require('firebase'),
   ref = new Firebase(env.firebase.location + '/queues'),
-  fs = require('fs');
+  fs = require('fs'),
+  defaultSpec = {
+    numWorkers: 5,
+    sanitize: false
+  };
 
 ref.authWithCustomToken(secret, function (error, authData) {
   if (error) {
@@ -17,7 +21,7 @@ var registerWorkers = function (ref) {
 
   files.forEach(function (file) {
     var worker = require('./workers/' + file);
-    worker(ref);
+    worker(ref, defaultSpec);
     
   });
 

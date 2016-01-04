@@ -3,10 +3,15 @@
 <head>
   <title>Autumn Dental Arts - FedEx Shipper</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
-  <script src="env.js"></script>
   <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <link rel="import" href="elements/elements.html">
   <style is="custom-style" include="shared-styles"></style>
+  <script type="text/javascript">
+    function __loadFirebaseEnv(clients) {
+      window.env = clients[location.hostname.split('.').join(',')];
+    }
+  </script>
+  <script src="https://autumndentalarts.firebaseio.com/env/clients.json?callback=__loadFirebaseEnv"></script>
 </head>
 
 <body>

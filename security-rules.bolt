@@ -1,5 +1,15 @@
 matchUID() = $uid == auth.uid;
 
+path /env/clients {
+  read() = true;
+  write() = false;
+}
+
+path /env/servers {
+  read() = false;
+  write() = false;
+}
+
 path /$env/queues/$queue/tasks {
   index() = ["_state"];
   

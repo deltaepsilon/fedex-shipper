@@ -1,0 +1,10 @@
+{
+  "firebase": "autumndentalarts",
+  "public": "app",
+  "ignore": [
+    "firebase.json",
+    "**/.*",
+    "**/node_modules/**"
+  ],
+  "rules": "security-rules.bolt"
+}

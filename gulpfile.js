@@ -14,7 +14,7 @@ var firebaseConfig = require('./firebase.json');
 gulp.task('copy', function () {
   return gulp.src([
       './bower_components/firebase/firebase.js',
-      './bower_components/webcomponentsjs/webcomponents-lite.js',
+      // './bower_components/webcomponentsjs/webcomponents-lite.js',
       './favicon.ico'
     ])
     .pipe(gulpCopy('./public'));
@@ -49,16 +49,12 @@ gulp.task('env', function (done) {
 
 gulp.task('make-public', function (done) {
   firebaseConfig.public = 'public';
-  console.log('make-public', firebaseConfig);
-  console.log(JSON.stringify(firebaseConfig));
   fs.writeFileSync('./firebase.json', JSON.stringify(firebaseConfig), 'utf8');
   done();
 });
 
 gulp.task('make-app', function (done) {
   firebaseConfig.public = 'app';
-  console.log('make-app', firebaseConfig);
-  console.log(JSON.stringify(firebaseConfig));
   fs.writeFileSync('./firebase.json', JSON.stringify(firebaseConfig), 'utf8');
   done();
 });
@@ -91,7 +87,7 @@ gulp.task('serve', ['make-app', 'superstatic']);
 
 gulp.task('default', ['copy', 'vulcanize']);
 
-gulp.task('deploy', ['copy', 'vulcanize', 'env', 'make-public', 'done']);
+gulp.task('deploy', ['copy', 'vulcanize', 'env', 'make-public', 'firebase-deploy']);
 
 gulp.task('test', ['make-public', 'make-app', 'done']);
 
